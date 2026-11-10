@@ -644,45 +644,55 @@ permission denied while trying to connect to the docker API at unix:///var/run/d
 
 - **대안 비교**: `permission denied ... docker.sock`은 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어(`sudo usermod -aG docker $USER`) 해결한다. 하지만 Docker Desktop을 쓰는 WSL은 호스트의 엔진을 연동하는 구조라 **WSL Integration 활성화와 재시작**이 해결책이다. 이 환경에서는 `docker` 그룹 방식은 사용하지 않았다.
 
-### 트러블슈팅 #2 — 포트 매핑 오류로 연결 실패
+### 트러블슈팅 #2 — 이미 사용 중인 localhost 포트로 매핑해 연결 실패
 
-- **문제**: 포트 매핑이 제대로 되지 않아 도커 컨테이너와 로컬(호스트) 간 연결이 실패했다.
-- **원인 가설**: `-p 호스트포트:컨테이너포트` 매핑이 잘못됨 (컨테이너 포트가 앱이 실제로 listen하는 포트와 다름).
-- **확인**: `docker ps`의 PORTS 열에서 매핑을 확인했다 (nginx는 컨테이너 내부 80 포트 사용).
-- **해결**: 매핑을 수정(`-p 8080:80`)해 다시 실행했고 연결이 정상임을 확인했다. 같은 호스트 포트를 쓰는 기존 컨테이너가 있으면 `docker rm -f`로 먼저 제거한다.
+- **문제**: 이미 다른 대상이 쓰고 있는 localhost(호스트) 포트로 컨테이너를 매핑하자 도커 컨테이너와 로컬 간 연결이 실패했다.
+- **원인**: 호스트 포트는 한 번에 하나의 대상만 점유할 수 있다. 실제로 사용 중인 포트에 `-p 호스트포트:컨테이너포트`를 또 지정해서 매핑이 성립하지 않았다.
+- **확인**: `docker ps`의 PORTS 열과 `ss -ltn`(Windows는 `netstat -ano | findstr :<포트>`)으로 해당 포트를 누가 점유 중인지 확인했다.
+- **해결**: 사용 중이 아닌 호스트 포트로 매핑을 수정(예: `-p 8100:80`)해 다시 실행했고 연결이 정상임을 확인했다. 점유한 쪽이 불필요한 컨테이너면 `docker rm -f`로 제거하고 같은 포트를 다시 써도 된다.
 
-재현 로그 (잘못된 매핑과 수정 후 비교. 당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록):
+재현 로그 (당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록. `practice/port-conflict-demo.sh`로 재현 가능. 8099를 먼저 점유한 컨테이너 `use-a`가 실제 사용 중인 localhost 포트 역할):
 
 ```bash
-# 잘못된 매핑: 컨테이너 포트를 5000으로 지정 (nginx는 80에서 대기)
-$ docker run -d -p 8099:5000 --name map-bad my-web:1.0
-$ docker ps --format 'table {{.Names}}\t{{.Ports}}'
-NAMES     PORTS
-map-bad   0.0.0.0:8099->5000/tcp, [::]:8099->5000/tcp
+# 이미 8099를 쓰는 컨테이너가 있는 상태에서 같은 호스트 포트로 매핑 시도
+$ docker run -d -p 8099:80 --name use-a my-web:1.0
+$ docker run -d -p 8099:80 --name use-b my-web:1.0
+docker: Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint use-b (...): Bind for 0.0.0.0:8099 failed: port is already allocated
+$ docker ps -a --format 'table {{.Names}}	{{.Status}}	{{.Ports}}'
+NAMES     STATUS                   PORTS
+use-b     Created
+use-a     Up Less than a second    0.0.0.0:8099->80/tcp, [::]:8099->80/tcp
+$ ss -ltn | grep 8099
+LISTEN 0      4096                *:8099            *:*
+
+# 수정: 사용 중이 아닌 호스트 포트(8100)로 매핑
+$ docker rm -f use-a use-b
+$ docker run -d -p 8100:80 --name use-c my-web:1.0
+$ curl -sS http://localhost:8100
+<h1>Hello from my custom image</h1>
+```
+
+재현 화면 (`practice/port-conflict-demo.sh` 실행 결과: 사용 중인 8099 매핑 실패 → 8100으로 수정):
+
+![port-mapping-fail](./assets/port-mapping-fail.png)
+
+- 실패한 컨테이너(`use-b`)는 `Created` 상태로 남고 PORTS가 비어 있으므로, 오류 메시지와 `docker ps -a`를 함께 봐야 한다. 점유는 `docker ps`뿐 아니라 컨테이너가 아닌 OS 프로세스일 수도 있어 `ss`/`netstat`로도 확인한다.
+
+### 참고: 컨테이너 포트를 잘못 지정한 경우 (별개의 매핑 오류)
+
+호스트 포트가 비어 있어도 컨테이너 쪽 포트가 앱이 listen하는 포트와 다르면 연결이 끊긴다 (nginx는 80 사용).
+
+```bash
+$ docker run -d -p 8099:5000 --name map-bad my-web:1.0     # 컨테이너 포트 오지정
 $ curl -sS http://localhost:8099
 curl: (56) Recv failure: Connection reset by peer
-$ ss -ltn | grep 8099
-LISTEN 0      4096                *:8099             *:*
-
-# 수정: 컨테이너 포트를 80으로 지정
 $ docker rm -f map-bad
-$ docker run -d -p 8099:80 --name map-ok my-web:1.0
-$ docker ps --format 'table {{.Names}}\t{{.Ports}}'
-NAMES     PORTS
-map-ok    0.0.0.0:8099->80/tcp, [::]:8099->80/tcp
+$ docker run -d -p 8099:80 --name map-ok my-web:1.0        # 수정
 $ curl -sS http://localhost:8099
 <h1>Hello from my custom image</h1>
 ```
 
-재현 화면 (잘못된 매핑 `8099:5000` 실패 → 수정 `8099:80` 성공):
-
-![port-mapping-fail](./assets/port-mapping-fail.png)
-
-- 호스트 포트는 LISTEN 상태라 **포트가 열려 있어도 컨테이너 내부 포트가 틀리면 연결이 끊긴다**는 점이 증상의 특징이다.
-
-### 참고: 포트 점유 진단 (매핑 오류와 별개의 문제)
-
-호스트 포트가 이미 사용 중이면 `port is already allocated` 오류가 난다. 이때의 진단 순서는 다음과 같다.
+### 참고: 포트 점유 진단 순서
 
 1. `docker ps`로 컨테이너 매핑 확인
 2. `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인
