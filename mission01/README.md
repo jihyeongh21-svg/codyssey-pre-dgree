@@ -131,6 +131,10 @@ $ ls
 sample.txt
 ```
 
+터미널 실행 화면 (`pwd`, `ls -la`, `touch`, `cat`, `cp`, `mv`, `rm` 결과):
+
+![terminal-files](./assets/terminal-files.png)
+
 ---
 
 ## 4) 권한 실습 및 증거 기록
@@ -175,6 +179,10 @@ test2
 
 ```
 
+
+권한 변경 전/후 `ls -l` 화면 (`644` → `444` → `644`):
+
+![permissions](./assets/permissions.png)
 
 ### 4-2. 디렉토리 권한 변경
 
@@ -225,6 +233,8 @@ $ docker info | grep -E "Server Version|Operating System|Context|Containers:|Run
 
 - 요약: `docker info`가 `Server Version`을 반환하므로 **Docker 데몬이 정상 응답 중**이며, Docker Desktop 엔진을 사용한다.
 
+![docker-check](./assets/docker-check.png)
+
 ---
 
 ## 6) Docker 기본 운영 명령 수행
@@ -266,6 +276,10 @@ redis:alpine         71885d8cc6e4        162MB           40MB
 ubuntu:latest        6a06111c3b0a        163MB         45.9MB   U
 ```
 
+`docker images`와 `docker ps -a` 실행 화면:
+
+![docker-images](./assets/docker-images.png)
+
 ---
 
 ## 7) 컨테이너 실행 실습
@@ -297,6 +311,8 @@ For more examples and ideas, visit:
  https://docs.docker.com/get-started/
 
 ```
+
+![hello-world](./assets/hello-world.png)
 
 ### 7-2. ubuntu 컨테이너 진입 및 명령 실행
 
@@ -379,6 +395,8 @@ da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seco
 - **Dockerfile 위치**: [`mission01/practice/webapp/Dockerfile`](./practice/webapp/Dockerfile)
 - **빌드 성공 핵심 메시지**: `#7 naming to docker.io/library/my-web:1.0 done` (위 빌드 로그 마지막 줄)
 
+![docker-build](./assets/docker-build.png)
+
 ---
 
 ## 9) 포트 매핑 및 접속 증거
@@ -458,6 +476,10 @@ $ docker volume inspect mydata
 ]
 ```
 
+볼륨 생성 → 데이터 기록 → 컨테이너 삭제 → 재생성 후 데이터 유지(`hi`) 확인 화면:
+
+![volume](./assets/volume.png)
+
 ---
 
 ## 11) Git 설정 및 GitHub/VSCode 연동
@@ -481,6 +503,10 @@ origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (push)
 $ ssh -T git@github.com
 Hi jihyeongh21-svg! You've successfully authenticated, but GitHub does not provide shell access.
 ```
+
+`git remote -v`, 사용자 이름, 기본 브랜치, SSH 인증 확인 화면:
+
+![git-remote](./assets/git-remote.png)
 
 VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
@@ -546,6 +572,10 @@ map-ok    0.0.0.0:8099->80/tcp, [::]:8099->80/tcp
 $ curl -sS http://localhost:8099
 <h1>Hello from my custom image</h1>
 ```
+
+재현 화면 (잘못된 매핑 `8099:5000` 실패 → 수정 `8099:80` 성공):
+
+![port-mapping-fail](./assets/port-mapping-fail.png)
 
 - 호스트 포트는 LISTEN 상태라 **포트가 열려 있어도 컨테이너 내부 포트가 틀리면 연결이 끊긴다**는 점이 증상의 특징이다.
 
