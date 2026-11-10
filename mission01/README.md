@@ -49,6 +49,42 @@ git version 2.43.0
 
 ---
 
+## 2-1) 디렉토리 구조와 설계 기준
+
+```text
+codyssey-pre-dgree/
+└── mission01/
+    ├── README.md            # 수행 기록 (명령 + 출력 + 증거)
+    ├── CONCEPTS.md          # 개념 정리
+    ├── assets/              # 스크린샷 (README에서 참조)
+    └── practice/
+        ├── sample.txt       # 터미널/권한 실습 대상 파일
+        ├── webapp/
+        │   ├── Dockerfile   # nginx:alpine 기반 커스텀 이미지
+        │   └── site/        # 정적 콘텐츠 (index.html)
+        └── compose/
+            ├── basic/       # 단일 서비스 Compose
+            └── multi/       # web + redis + cache, 환경 변수
+```
+
+| 경로 | 목적 |
+|---|---|
+| `mission01/README.md` | 제출용 실행 기록. 모든 명령과 출력을 한곳에 모음 |
+| `mission01/CONCEPTS.md` | 실습에서 쓴 개념(경로/권한/Docker/Git) 정리 노트 |
+| `mission01/assets/` | README가 참조하는 스크린샷만 보관 |
+| `mission01/practice/` | 실습 산출물 전용. 문서와 실습 파일을 분리 |
+| `practice/webapp/` | 이미지 빌드 단위. `Dockerfile`과 빌드 컨텍스트(`site/`)를 한 폴더에 둠 |
+| `practice/webapp/site/` | 컨테이너에 복사/마운트되는 정적 콘텐츠 |
+| `practice/compose/basic`, `multi` | Compose 구성 단위별 폴더. 두 구성이 같은 포트를 써서 함께 실행하지 않는다 |
+
+**설계 기준**
+- 미션 단위 폴더(`mission01`)로 나눠 이후 미션이 추가돼도 충돌하지 않게 한다.
+- **문서 / 증거 / 실습 파일을 분리**해서 문서만 읽어도 흐름이 보이고, 실습 파일만 실행해도 재현되게 한다.
+- 빌드 컨텍스트를 `webapp/` 하나로 좁혀 `COPY`가 불필요한 파일을 이미지에 넣지 않게 한다.
+- Compose 파일은 서비스 구성별 폴더로 나눠 `docker compose` 명령을 해당 폴더에서 실행한다(프로젝트 이름도 폴더명으로 구분됨).
+
+---
+
 ## 3) 터미널 조작 로그
 
 > 참고: 3)~4)의 로그는 `/home/gkwlgud129430` 계정 환경(11월 4일)에서 실행한 기록이고, 5) 이후는 현재 WSL 환경에서 다시 실행한 기록입니다. 경로 표기가 다른 이유입니다.
@@ -110,6 +146,8 @@ sample.txt
 *추가로 가장앞이 d 일경우 디렉토리 없을 경우 파일*
 
 *파일종류(디렉토리/일반파일/소유자/그룹/기타 순으로 권한 표시*
+
+> **숫자 선택 근거**: `444`는 모두 읽기 전용이라 "쓰기가 실제로 차단되는지" 확인하기에 가장 단순한 값이고, `644`는 일반 파일의 기본값(소유자만 쓰기, 나머지는 읽기)이라 원상 복구용으로 사용했다. 디렉토리는 `755`(소유자 rwx, 나머지 r-x)가 기본값이고, `555`는 쓰기 차단을 확인하려고 `w`만 제거한 값이다.
 
 
 ```bash
@@ -175,7 +213,17 @@ $ docker info
   ::1/128
  Live Restore Enabled: false
  Firewall Backend: iptables
+
+# 데몬/컨텍스트 요약 (현재 WSL 환경에서 다시 확인)
+$ docker info | grep -E "Server Version|Operating System|Context|Containers:|Running:"
+ Context:    default
+ Containers: 2
+  Running: 0
+ Server Version: 29.9.2
+ Operating System: Docker Desktop
 ```
+
+- 요약: `docker info`가 `Server Version`을 반환하므로 **Docker 데몬이 정상 응답 중**이며, Docker Desktop 엔진을 사용한다.
 
 ---
 
@@ -204,6 +252,18 @@ $ docker logs my-web
 $ docker stats --no-stream
 CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT     MEM %     NET I/O         BLOCK I/O     PIDS
 da97c4c13957   my-web    0.00%     21.59MiB / 15.25GiB   0.14%     1.76kB / 778B   0B / 8.19kB   25
+
+# 이미지 목록 (실습 진행 후)
+$ docker images
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+basic-web:latest     faf2a950bb5d       93.7MB         26.4MB
+hello-world:latest   c567b231f656       25.9kB         9.49kB   U
+memcached:alpine     bfc2ee42c4ed         20MB         6.06MB
+multi-web:latest     eaf3edb36309       93.7MB         26.4MB
+my-web:1.0           99d8ef8f16f2       93.7MB         26.4MB
+nginx:alpine         713fc2ebfd92       94.5MB         27.3MB
+redis:alpine         71885d8cc6e4        162MB           40MB
+ubuntu:latest        6a06111c3b0a        163MB         45.9MB   U
 ```
 
 ---
@@ -316,6 +376,9 @@ CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS     
 da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
 ```
 
+- **Dockerfile 위치**: [`mission01/practice/webapp/Dockerfile`](./practice/webapp/Dockerfile)
+- **빌드 성공 핵심 메시지**: `#7 naming to docker.io/library/my-web:1.0 done` (위 빌드 로그 마지막 줄)
+
 ---
 
 ## 9) 포트 매핑 및 접속 증거
@@ -377,6 +440,22 @@ $ docker rm -f vol-test
 $ docker run -d --name vol-test2 -v mydata:/data ubuntu sleep infinity
 $ docker exec -it vol-test2 bash -lc "cat /data/hello.txt"
 # hi (삭제 전/후 데이터 유지 확인)
+
+# 볼륨 목록 / 상세 (컨테이너와 별개로 볼륨이 남아 있음)
+$ docker volume ls
+DRIVER    VOLUME NAME
+local     mydata
+
+$ docker volume inspect mydata
+[
+    {
+        "CreatedAt": "2026-11-10T01:57:00Z",
+        "Driver": "local",
+        "Mountpoint": "/var/lib/docker/volumes/mydata/_data",
+        "Name": "mydata",
+        "Scope": "local"
+    }
+]
 ```
 
 ---
@@ -392,6 +471,11 @@ user.email=<이메일>
 user.name=jihyeongh21-svg
 init.defaultbranch=main
 core.autocrlf=input
+
+# 저장소 루트에서 원격 URL 확인
+$ git remote -v
+origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (fetch)
+origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (push)
 
 # GitHub SSH 인증 확인 (공개키만 등록, 개인키는 노출하지 않음)
 $ ssh -T git@github.com
@@ -419,6 +503,32 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 - **원인 가설**: `-p 호스트포트:컨테이너포트` 매핑이 잘못됨 (컨테이너 포트가 앱이 실제로 listen하는 포트와 다름)
 - **확인**: `docker ps`의 PORTS 열에서 매핑을 확인 (nginx는 컨테이너 내부 80 포트 사용)
 - **해결/대안**: 매핑을 수정(`-p 8080:80`)해 다시 실행 후 연결 정상 확인. 같은 호스트 포트를 쓰는 기존 컨테이너가 있으면 `docker rm -f`로 먼저 제거
+- **포트 점유 진단 순서**: ① `docker ps`로 컨테이너 매핑 확인 → ② `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인 → ③ 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트 사용
+
+재현 로그 (잘못된 매핑과 수정 후 비교. 당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록):
+
+```bash
+# 잘못된 매핑: 컨테이너 포트를 5000으로 지정 (nginx는 80에서 대기)
+$ docker run -d -p 8099:5000 --name map-bad my-web:1.0
+$ docker ps --format 'table {{.Names}}\t{{.Ports}}'
+NAMES     PORTS
+map-bad   0.0.0.0:8099->5000/tcp, [::]:8099->5000/tcp
+$ curl -sS http://localhost:8099
+curl: (56) Recv failure: Connection reset by peer
+$ ss -ltn | grep 8099
+LISTEN 0      4096                *:8099             *:*
+
+# 수정: 컨테이너 포트를 80으로 지정
+$ docker rm -f map-bad
+$ docker run -d -p 8099:80 --name map-ok my-web:1.0
+$ docker ps --format 'table {{.Names}}\t{{.Ports}}'
+NAMES     PORTS
+map-ok    0.0.0.0:8099->80/tcp, [::]:8099->80/tcp
+$ curl -sS http://localhost:8099
+<h1>Hello from my custom image</h1>
+```
+
+- 호스트 포트는 LISTEN 상태라 **포트가 열려 있어도 컨테이너 내부 포트가 틀리면 연결이 끊긴다**는 점이 증상의 특징이다.
 
 ---
 
