@@ -1,0 +1,6 @@
+# 보너스 1: 단일 서비스 Compose
+services:
+  web:
+    build: ../../webapp
+    ports:
+      - "8080:80"

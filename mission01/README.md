@@ -425,11 +425,110 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
 ## 13) 보너스 과제 (선택)
 
-- [ ] Docker Compose 기초 (`docker-compose.yml` 단일 서비스)
-- [ ] Docker Compose 멀티 컨테이너 (웹 서버 + 보조 서비스 2개 이상, 네트워크 통신 확인)
-- [ ] Compose 운영 명령어 (`up` / `down` / `ps` / `logs`)
-- [ ] 환경 변수 활용 (포트/모드 변경)
+- [x] Docker Compose 기초 (`docker-compose.yml` 단일 서비스)
+- [x] Docker Compose 멀티 컨테이너 (웹 서버 + 보조 서비스 2개 이상, 네트워크 통신 확인)
+- [x] Compose 운영 명령어 (`up` / `down` / `ps` / `logs`)
+- [x] 환경 변수 활용 (포트/모드 변경)
 - [x] GitHub SSH 키 설정 및 동작 확인 (11)의 `ssh -T` 결과 참고)
+
+파일 위치: `practice/compose/basic/docker-compose.yml`, `practice/compose/multi/docker-compose.yml` (빌드 대상은 8)의 `practice/webapp`)
+
+### 13-1. Compose 기초 + 운영 명령어
+
+```yaml
+# practice/compose/basic/docker-compose.yml
+services:
+  web:
+    build: ../../webapp
+    ports:
+      - "8080:80"
+```
+
+```bash
+$ docker compose up -d --build
+ Container basic-web-1 Started
+
+$ docker compose ps
+NAME          IMAGE       COMMAND                  SERVICE   CREATED         STATUS         PORTS
+basic-web-1   basic-web   "/docker-entrypoint.…"   web       3 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ curl http://localhost:8080
+<h1>Hello from my custom image</h1>
+
+$ docker compose logs --tail 3
+web-1  | 2026/11/10 01:49:53 [notice] 1#1: start worker process 53
+web-1  | 172.18.0.1 - - [10/Nov/2026:01:49:56 +0000] "GET / HTTP/1.1" 200 36 "-" "curl/8.5.0" "-"
+
+$ docker compose down
+ Container basic-web-1 Removed
+ Network basic_default Removed
+```
+
+### 13-2. 멀티 컨테이너 + 네트워크 통신 (web + redis + cache)
+
+```yaml
+# practice/compose/multi/docker-compose.yml
+services:
+  web:
+    build: ../../webapp
+    environment:
+      - APP_PORT=${APP_PORT:-8080}
+      - APP_MODE=${APP_MODE:-dev}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - redis
+      - cache
+  redis:
+    image: redis:alpine
+  cache:
+    image: memcached:alpine
+```
+
+```bash
+$ docker compose up -d --build
+$ docker compose ps
+NAME            IMAGE              COMMAND                  SERVICE   STATUS         PORTS
+multi-cache-1   memcached:alpine   "docker-entrypoint.s…"   cache     Up 3 seconds   11211/tcp
+multi-redis-1   redis:alpine       "docker-entrypoint.s…"   redis     Up 3 seconds   6379/tcp
+multi-web-1     multi-web          "/docker-entrypoint.…"   web       Up 3 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ docker compose exec web ping -c 2 redis
+PING redis (172.18.0.3): 56 data bytes
+64 bytes from 172.18.0.3: seq=0 ttl=64 time=0.068 ms
+64 bytes from 172.18.0.3: seq=1 ttl=64 time=0.074 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+
+$ docker compose exec web ping -c 2 cache
+PING cache (172.18.0.2): 56 data bytes
+64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.067 ms
+64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.073 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+```
+
+- 같은 Compose 네트워크 안에서는 **서비스 이름이 호스트 이름**으로 동작해서 `redis`, `cache`로 바로 통신된다.
+- `depends_on`은 시작 순서만 보장하며, 서비스가 "준비 완료"인지까지 기다리지는 않는다.
+
+### 13-3. 환경 변수 활용 (포트/모드 변경)
+
+```bash
+$ docker compose down
+$ APP_PORT=8090 APP_MODE=prod docker compose up -d
+$ docker compose ps web
+NAME          IMAGE       COMMAND                  SERVICE   STATUS         PORTS
+multi-web-1   multi-web   "/docker-entrypoint.…"   web       Up 3 seconds   0.0.0.0:8090->80/tcp, [::]:8090->80/tcp
+
+$ curl http://localhost:8090
+<h1>Hello from my custom image</h1>
+
+$ docker compose exec web printenv APP_PORT APP_MODE
+8090
+prod
+
+$ docker compose down
+```
+
+- `${APP_PORT:-8080}`은 변수가 없으면 기본값 8080을 쓰는 문법이다. 같은 파일로 포트와 모드를 바꿔 실행할 수 있다.
 
 ---
 

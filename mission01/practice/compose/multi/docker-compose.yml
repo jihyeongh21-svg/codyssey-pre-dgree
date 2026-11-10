@@ -1,0 +1,17 @@
+# 보너스 2~4: 멀티 컨테이너 + 환경 변수
+# 같은 Compose 네트워크 안에서는 서비스 이름(redis, cache)이 호스트 이름으로 동작한다.
+services:
+  web:
+    build: ../../webapp
+    environment:
+      - APP_PORT=${APP_PORT:-8080}
+      - APP_MODE=${APP_MODE:-dev}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - redis
+      - cache
+  redis:
+    image: redis:alpine
+  cache:
+    image: memcached:alpine
