@@ -17,7 +17,7 @@
 |---|---|
 | OS | Windows 11 Pro + WSL2 Ubuntu 24.04.5 LTS |
 | Shell | bash (zsh + Oh My Zsh + Starship 설치 완료, 기본 쉘 전환 전) |
-| 터미널 | <!-- 사용 중인 터미널 이름 (예: Windows Terminal) 직접 기재 --> |
+| 터미널 | VS Code 통합 터미널 (WSL: Ubuntu-24.04 연결) |
 | Docker (또는 OrbStack) | Docker Desktop (WSL2 backend) — Docker version 29.9.2, build a82e528 |
 | Git | git version 2.43.0 |
 
