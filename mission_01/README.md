@@ -45,7 +45,7 @@ git version 2.43.0
 - [x] Git 사용자 정보 및 기본 브랜치 설정
 - [x] GitHub SSH 키 등록 및 `ssh -T` 인증 확인
 - [x] VSCode ↔ GitHub 로그인 스크린샷
-- [x] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (STEP 11)
+- [x] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (보안 점검 로그 참고)
 
 ---
 
@@ -86,53 +86,84 @@ codyssey-pre-dgree/
 
 ---
 
+## 2-2) 검증 방법과 증거 위치
+
+| 항목 | 검증 명령 | 판단 기준 | 증거 위치 |
+|---|---|---|---|
+| 터미널 조작 | `pwd`, `ls -la`, `mkdir`, `touch`, `cp`, `mv`, `rm`, `cat` | 명령별 출력이 기대와 일치 | [3)](#3-터미널-조작-로그), ![](./assets/terminal-files.png) |
+| 권한 변경 | `ls -l`, `ls -ld`, `chmod`, 쓰기/생성 시도 | 변경 전/후 권한 문자열 변화, 차단 시 `Permission denied` | [4)](#4-권한-실습-및-증거-기록) |
+| Docker 점검 | `docker --version`, `docker info` | `Server Version` 출력 | [5)](#5-docker-설치-및-기본-점검), 트러블슈팅 #1 |
+| 운영 명령 | `docker images`, `docker ps -a`, `docker logs`, `docker stats` | 이미지/컨테이너/로그/리소스 출력 | [6)](#6-docker-기본-운영-명령-수행) |
+| 컨테이너 실행 | `docker run hello-world`, `docker run ... ubuntu`, `exec`/`attach` | 메시지 출력, 종료 시 상태 차이 | [7)](#7-컨테이너-실행-실습) |
+| Dockerfile 빌드 | `docker build -t my-web:1.0 .` | `naming to ... my-web:1.0 done` | [8)](#8-기존-dockerfile-기반-커스텀-이미지-제작) |
+| 포트 매핑 | `docker run -p 8080:80`, `-p 8081:80`, `curl -i` | HTTP 200 + 브라우저 주소창(포트 포함) | [9)](#9-포트-매핑-및-접속-증거) |
+| 바인드 마운트 | 호스트에서 `site/index.html` 수정 후 `curl` | 재시작 없이 응답 변경 | [10-1)](#10-1-바인드-마운트) |
+| 볼륨 영속성 | 컨테이너 삭제 전/후 `cat /data/hello.txt` | 삭제 후에도 `hi` 유지 | [10-2)](#10-2-볼륨-영속성) |
+| Git/GitHub | `git config --global --list`, `git remote -v`, `ssh -T git@github.com` | 사용자 정보, 원격 URL, 인증 성공 메시지 | [11)](#11-git-설정-및-githubvscode-연동) |
+| 보안 점검 | `grep`으로 키/토큰 패턴 검색 | 실제 비밀값 없음 | [보안 점검 로그](#보안-점검-로그) |
+| 보너스(Compose) | `docker compose up/ps/logs/down`, `ping` | 서비스 이름으로 통신 | [13)](#13-보너스-과제-선택) |
+
+---
+
 ## 3) 터미널 조작 로그
 
-> 참고: 3)~4)의 로그는 `/home/gkwlgud129430` 계정 환경(11월 4일)에서 실행한 기록이고, 5) 이후는 현재 WSL 환경에서 다시 실행한 기록입니다. 경로 표기가 다른 이유입니다.
+> 실행 환경: WSL2 Ubuntu 24.04, bash, root 계정. 저장소를 어지럽히지 않도록 `practice/` 아래 임시 디렉토리 `lab/`에서 실행하고 마지막에 삭제했다.
 
-### 3-1. 작업 디렉토리 구성
+### 3-1. 작업 디렉토리 구성 (위치 확인 · 생성 · 이동 · 목록)
 
 ```bash
+# 현재 위치 확인 (절대 경로)
 $ pwd
-# 현재 위치
-/home/gkwlgud129430/codyssey-pre-dgree/mission01 ### 절대경로
+/root/projects/codyssey-pre-dgree/mission_01/practice
 
-$ mkdir -p ~/codyssey-pre-dgree/mission01/practice
-$ cd ~/codyssey-pre-dgree/mission01/practice
-$ ls -la ### 단순 파일 목록만 보기 옵션 제거 -la
-# 결과
+# 디렉토리 생성 후 이동
+$ mkdir -p lab
+$ cd lab
+$ pwd
+/root/projects/codyssey-pre-dgree/mission_01/practice/lab
+
+# 숨김 파일 포함 목록 (.은 현재, ..은 상위 디렉토리)
+$ ls -la
 total 8
-drwxr-xr-x 2 gkwlgud129430 gkwlgud129430 4096 Nov  4 15:07 .
-drwxr-xr-x 3 gkwlgud129430 gkwlgud129430 4096 Nov  4 15:07 ..
-
+drwxr-xr-x 2 root root 4096 Nov 10 12:39 .
+drwxr-xr-x 5 root root 4096 Nov 10 12:39 ..
 ```
 
-### 3-2. 파일/디렉토리 생성·복사·이동·삭제
+### 3-2. 파일 생성 · 내용 확인 · 복사 · 이동/이름 변경 · 삭제
 
 ```bash
-# 파일 생성
+# 빈 파일 생성 후 확인 (크기 0, 내용 없음)
 $ touch sample.txt
-# 내용 삽입
-$ echo "test" > sample.txt ### touch 명령어 과정 생략 가능
-# 파일 내용 확인
+$ ls -la
+total 8
+drwxr-xr-x 2 root root 4096 Nov 10 12:39 .
+drwxr-xr-x 5 root root 4096 Nov 10 12:39 ..
+-rw-r--r-- 1 root root    0 Nov 10 12:39 sample.txt
 $ cat sample.txt
-# 결과
+
+# 내용 쓰기와 확인
+$ echo "test" > sample.txt
+$ cat sample.txt
 test
 
-
-# 복사 / 이동·이름변경 / 삭제
+# 복사 / 이동·이름 변경 / 삭제
 $ cp sample.txt sample_copy.txt
-$ mv sample_copy.txt renamed.txt ### 이동과  변경 동시 변경은 rename 따로 존재
+$ mv sample_copy.txt renamed.txt
 $ ls
-# 결과
-renamed.txt  sample.txt
+renamed.txt
+sample.txt
 $ rm renamed.txt
 $ ls
-# 결과
 sample.txt
+
+# 실습 디렉토리 정리
+$ cd ..
+$ rm -r lab
 ```
 
-터미널 실행 화면 (`pwd`, `ls -la`, `touch`, `cat`, `cp`, `mv`, `rm` 결과):
+- `mv`는 **이동과 이름 변경을 모두** 수행한다(같은 디렉토리 안에서 쓰면 이름 변경). 여러 파일의 이름을 한꺼번에 바꾸는 `rename`은 별도 유틸리티다.
+
+터미널 실행 화면 (`practice/`에서 같은 명령 구성으로 실행한 화면):
 
 ![terminal-files](./assets/terminal-files.png)
 
@@ -140,69 +171,82 @@ sample.txt
 
 ## 4) 권한 실습 및 증거 기록
 
+> root 계정은 권한 검사를 대부분 건너뛰어 `444` 파일에도 쓸 수 있다. 그래서 권한 실습은 **비특권 사용자 `nobody`**로 임시 디렉토리 `/tmp/permlab`에서 실행했다(`runuser -u nobody`). 실행 후 디렉토리는 삭제했다.
+
 ### 4-1. 파일 권한 변경
 
 | 표기 | 의미 |
 |---|---|
-| `r` / `w` / `x` | 읽기 / 쓰기 / 실행   |
+| `r` / `w` / `x` | 읽기(4) / 쓰기(2) / 실행(1) |
 | `644` | 소유자 rw-, 그룹 r--, 기타 r-- |
 | `755` | 소유자 rwx, 그룹 r-x, 기타 r-x |
 
-*추가로 가장앞이 d 일경우 디렉토리 없을 경우 파일*
+- `ls -l`의 첫 글자는 종류(`-` 일반 파일, `d` 디렉토리)이고, 이어서 소유자 · 그룹 · 기타 순으로 3글자씩 권한을 표시한다.
 
-*파일종류(디렉토리/일반파일/소유자/그룹/기타 순으로 권한 표시*
-
-> **기대 동작과 복구 목적**: `444`로 바꾸면 쓰기 시도(`echo "test2" > sample.txt`)가 `Permission denied`로 **실패해야** 한다(root 계정은 예외라 성공할 수 있음). 이후 `chmod 644`는 쓰기를 다시 허용해 파일을 원래 상태로 되돌리기 위한 복구 명령이다.
+> **기대 동작과 복구 목적**: `444`로 바꾸면 쓰기 시도(`echo "test2" > sample.txt`)가 `Permission denied`로 **실패해야** 한다. 이후 `chmod 644`는 쓰기를 다시 허용해 파일을 원래 상태로 되돌리기 위한 복구 명령이다.
 
 > **숫자 선택 근거**: `444`는 모두 읽기 전용이라 "쓰기가 실제로 차단되는지" 확인하기에 가장 단순한 값이고, `644`는 일반 파일의 기본값(소유자만 쓰기, 나머지는 읽기)이라 원상 복구용으로 사용했다. 디렉토리는 `755`(소유자 rwx, 나머지 r-x)가 기본값이고, `555`는 쓰기 차단을 확인하려고 `w`만 제거한 값이다.
 
-
 ```bash
+$ whoami
+nobody
+$ echo "test" > sample.txt
 $ ls -l sample.txt
-# 변경 전 권한 (예: -rw-r--r--)
--rw-r--r-- 1 gkwlgud129430 gkwlgud129430 5 Nov  4 15:13 sample.txt
-### 일반파일/읽기쓰기/읽기/읽기 -> 숫자 변환 644(4+2/4/4)  
+# 변경 전: 644 (rw-r--r--)
+-rw-r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
+
 $ chmod 444 sample.txt
 $ ls -l sample.txt
-# 변경 후 권한
--r--r--r-- 1 gkwlgud129430 gkwlgud129430 5 Nov  4 15:13 sample.txt
-# 실제 쓰기 불가능 한지 확인
+# 변경 후: 444 (r--r--r--)
+-r--r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
+
+# 쓰기 시도 -> 실패하고 내용은 그대로
 $ echo "test2" > sample.txt
-# 결과
-permission denied: sample.txt
-# 다시 쓰기 권한 부여
+bash: line 1: sample.txt: Permission denied
+$ cat sample.txt
+test
+
+# 복구: 다시 644
 $ chmod 644 sample.txt
 $ ls -l sample.txt
-# 결과
--rw-r--r-- 1 gkwlgud129430 gkwlgud129430 6 Nov  4 15:53 sample.txt
+-rw-r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
 $ echo "test2" > sample.txt
 $ cat sample.txt
-# 결과
 test2
-
 ```
 
-
-권한 변경 전/후 `ls -l` 화면 (`644` → `444` → `644`):
+root 계정에서 `ls -l`로 본 권한 문자열 변화 화면(`644` → `444` → `644`). root는 쓰기 차단이 적용되지 않으므로, 쓰기 실패 증거는 위 `nobody` 로그로 대신한다.
 
 ![permissions](./assets/permissions.png)
 
 ### 4-2. 디렉토리 권한 변경
 
 ```bash
-$ ls -ld ~/codyssey-pre-dgree/mission01/practice
-# 변경 전
-drwxr-xr-x 2 gkwlgud129430 gkwlgud129430 4096 Nov  4 15:21 /home/gkwlgud129430/codyssey-pre-dgree/mission01/practice
+$ mkdir testdir
+$ ls -ld testdir
+# 변경 전: 755
+drwxr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
 
-$ chmod 555 ~/codyssey-pre-dgree/mission01/practice
-$ ls -ld ~/codyssey-pre-dgree/mission01/practice
-# 변경 후
-dr-xr-xr-x 2 gkwlgud129430 gkwlgud129430 4096 Nov  4 15:21 /home/gkwlgud129430/codyssey-pre-dgree/mission01/practice
-# 실제 쓰기 불가능 한지 확인 
-$ touch test.txt  
-# 결과
-touch: cannot touch 'test.txt': Permission denied
+$ chmod 555 testdir
+$ ls -ld testdir
+# 변경 후: 555 (w 없음)
+dr-xr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
+
+# 쓰기 불가 확인: 디렉토리 안에 파일 생성 시도
+$ touch testdir/a.txt
+touch: cannot touch 'testdir/a.txt': Permission denied
+
+# 복구: 다시 755
+$ chmod 755 testdir
+$ ls -ld testdir
+drwxr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
+$ touch testdir/a.txt
+$ ls -l testdir
+total 0
+-rw-r--r-- 1 nobody nogroup 0 Nov 10 12:39 a.txt
 ```
+
+- 디렉토리의 `w`는 **그 안에 파일을 만들고 지우는 권한**이다. `555`에서 생성이 막혔고, `755`로 복구하자 다시 생성된다.
 
 ---
 
@@ -212,20 +256,7 @@ touch: cannot touch 'test.txt': Permission denied
 $ docker --version
 # 결과
 Docker version 29.9.2, build a82e528
-$ docker info
-# (또는 동등 점검 명령) 결과
- Version:    29.9.2
- Context:    desktop-linux
- Debug Mode: false
- ...
-  Insecure Registries:
-  hubproxy.docker.internal:5555
-  127.0.0.0/8
-  ::1/128
- Live Restore Enabled: false
- Firewall Backend: iptables
-
-# 데몬/컨텍스트 요약 (현재 WSL 환경에서 다시 확인)
+# 데몬 동작 확인: docker info 출력에서 핵심 항목만 추출
 $ docker info | grep -E "Server Version|Operating System|Context|Containers:|Running:"
  Context:    default
  Containers: 2
@@ -250,10 +281,6 @@ $ docker info | grep -E "Server Version|Operating System|Context|Containers:|Run
 ## 6) Docker 기본 운영 명령 수행
 
 ```bash
-# 이미지
-$ docker images
-# 결과
-IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
 # 컨테이너 실행/중지/목록
 $ docker ps
 $ docker ps -a
@@ -262,7 +289,7 @@ CONTAINER ID   IMAGE         COMMAND                   CREATED         STATUS   
 3170f9ae3c9c   ubuntu        "bash -c 'ls; echo \"…"   1 second ago    Exited (0) Less than a second ago             ubuntu-test
 589bbe87dcaf   hello-world   "/hello"                  7 seconds ago   Exited (0) 6 seconds ago                      distracted_wozniak
 
-# 운영: 로그/리소스 (STEP 8의 my-web 컨테이너 실행 중)
+# 운영: 로그/리소스 (8절에서 만든 my-web 컨테이너 실행 중)
 $ docker logs my-web
 /docker-entrypoint.sh: Configuration complete; ready for start up
 2026/11/10 00:45:45 [notice] 1#1: nginx/1.31.8
@@ -327,34 +354,70 @@ For more examples and ideas, visit:
 ### 7-2. ubuntu 컨테이너 진입 및 명령 실행
 
 ```bash
-$ docker run -it --name ubuntu-test ubuntu bash
-# 컨테이너 내부
-$ ls
-# 결과
-bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
-
-$ echo "hello from container"
-#결과
+# 컨테이너 안에서 ls, echo, pwd를 실행 (6절 `docker ps -a`의 ubuntu-test 와 같은 명령)
+$ docker run --name ubuntu-test ubuntu bash -c 'ls; echo "hello from container"; pwd'
+bin
+boot
+dev
+etc
+home
+lib
+lib64
+media
+mnt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
 hello from container
-
-$ exit
-#결과
-exit
+/
 ```
+
+- 대화형(`-it`)으로 컨테이너 쉘에 직접 들어가는 방식은 7-3의 `docker exec -it`로 확인한다.
 
 ### 7-3. attach / exec 차이 정리
 
 - `docker exec`: 실행 중인 컨테이너에 새 프로세스로 진입 (여러 세션 가능)
 - `docker attach`: 컨테이너의 메인 프로세스(PID 1)에 직접 연결
 
-직접 관찰한 차이:
+직접 관찰한 차이 (터미널 입력 대신 파이프로 `hostname`, `exit`를 전달해 실행. 직접 `-it`로 입력해도 같은 결과):
+
+```bash
+# exec: 백그라운드 컨테이너(메인 프로세스 sleep)에 새 쉘로 진입했다가 종료
+$ docker run -d --name bg-test ubuntu sleep infinity
+$ docker exec -it bg-test bash      # 입력: hostname, exit
+a6277be86419
+$ docker ps --format 'table {{.Names}}\t{{.Status}}'
+NAMES     STATUS
+bg-test   Up Less than a second     # 쉘을 종료해도 컨테이너는 유지됨
+
+# attach: 메인 프로세스가 bash 인 컨테이너에 직접 연결해 exit
+$ docker run -d -i --name att-test ubuntu bash
+$ docker attach att-test            # 입력: exit
+$ docker ps -a --format 'table {{.Names}}\t{{.Status}}'
+NAMES                STATUS
+att-test             Exited (0) 1 second ago     # 메인 프로세스가 끝나 컨테이너도 종료
+bg-test              Up 1 second
+```
 
 | 구분 | 종료 시 동작 | 이유 |
 |---|---|---|
 | `docker exec -it <name> bash` | 쉘을 `exit`해도 **컨테이너는 계속 실행**됨 | 메인 프로세스와 별개로 새로 띄운 프로세스만 종료되기 때문 |
-| `docker attach <name>` | 종료하면 **컨테이너도 멈춤** | 메인 프로세스(PID 1)에 직접 붙어 있어서 그 프로세스가 끝나면 컨테이너도 끝나기 때문 |
+| `docker attach <name>` | 메인 프로세스를 `exit`로 끝내면 **컨테이너도 멈춤** | 메인 프로세스(PID 1)에 직접 붙어 있어서 그 프로세스가 끝나면 컨테이너도 끝나기 때문 |
 
+- `attach` 중 `Ctrl+P` → `Ctrl+Q`로 **분리(detach)**하면 컨테이너는 계속 실행된다. 즉 "종료 방식에 따라" 달라진다.
 - 컨테이너를 유지한 채 접속·점검하려면 `exec`, 메인 프로세스의 입출력을 그대로 보려면 `attach`를 사용한다.
+
+```bash
+# 정리
+$ docker rm -f bg-test att-test
+```
 
 ---
 
@@ -412,7 +475,7 @@ da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seco
 ## 9) 포트 매핑 및 접속 증거
 
 ```bash
-$ docker rm -f my-web   # STEP 6의 컨테이너가 8080을 쓰고 있으므로 먼저 제거
+$ docker rm -f my-web   # 8절의 컨테이너가 8080을 쓰고 있으므로 먼저 제거
 $ docker run -d -p 8080:80 --name my-web-8080 my-web:1.0
 $ curl http://localhost:8080
 <h1>Hello from my custom image</h1>   # 결과 1
@@ -425,6 +488,9 @@ $ docker ps
 CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
 230c6a032793   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   my-web-8081
 b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web-8080
+
+# 정리
+$ docker rm -f my-web-8080 my-web-8081
 ```
 
 > nginx는 컨테이너 내부 **80 포트**에서 대기하므로 매핑은 `호스트포트:80`입니다. (`:5000`은 Flask 등 다른 앱용)
@@ -464,6 +530,10 @@ $ echo "<h1>updated content</h1>" > site/index.html
 $ curl http://localhost:8082
 <h1>updated content</h1>
 # 컨테이너 재시작 없이 변경 반영됨
+
+# 원복 및 정리 (원복하지 않으면 이후 build/Compose 응답이 updated content 로 달라짐)
+$ echo "<h1>Hello from my custom image</h1>" > site/index.html
+$ docker rm -f bind-test
 ```
 
 ### 10-2. 볼륨 영속성
@@ -496,6 +566,10 @@ $ docker volume inspect mydata
         "Scope": "local"
     }
 ]
+
+# 정리
+$ docker rm -f vol-test2
+$ docker volume rm mydata
 ```
 
 > 참고: 볼륨 파일의 소유자/권한은 컨테이너 안의 사용자(uid) 기준으로 만들어진다. Windows 경로(`/mnt/c`)를 바인드 마운트하면 WSL이 권한을 흉내 내서 `chmod`가 반영되지 않거나 소유자가 달라질 수 있으므로, WSL 안의 경로(`~/...`)나 Docker 볼륨을 쓰는 것이 안전하다.
@@ -541,20 +615,12 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
 ## 12) 트러블슈팅 (2건 이상)
 
-### 트러블슈팅 #1
+### 트러블슈팅 #1 — WSL에서 docker 명령 실패
 
-- **문제**: wsl 터미널에서 permission denied 도커 조작 실패 (`docker info` 실행 시 아래 오류 발생)
-- **원인 가설**: 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화 (Docker Desktop의 WSL Integration 미활성화)
-- **확인**: docker desktop app 에서 설정 확인 (Settings → Resources → WSL Integration)
-- **해결/대안**: Docker Desktop 앱 → Settings → Resources → WSL Integration에서 **"Enable integration with my default WSL distro"**를 활성화하고, 강제 재시작(재부팅)했다. 이후 wsl 완전 종료후 재실행 (`wsl --shutdown` → 재진입 → `docker info`로 확인)
+- **문제**: WSL 터미널에서 docker 조작이 실패했다. 오류가 두 단계로 나타났다.
+- **원인 가설**: 도커 설정에서 터미널(WSL)로의 접근을 허용하는 옵션이 비활성화되어 있다 (Docker Desktop의 WSL Integration 미활성화).
 
-원본 오류 로그 (1) — 명령 실행 시 권한 오류:
-
-```text
-permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
-```
-
-원본 오류 로그 (2) — `docker info` 실행 시:
+**1차 오류** — `docker info` 실행 시:
 
 ```text
 Server:
@@ -564,17 +630,26 @@ For details about using Docker Desktop with WSL 2, visit: https://docs.docker.co
 errors pretty printing info
 ```
 
-- `permission denied ... docker.sock`은 WSL에서 도커 소켓(`/var/run/docker.sock`)에 접근할 권한이나 연동이 없을 때 나온다. 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어서 해결하지만, **Docker Desktop을 쓰는 WSL에서는 WSL Integration 활성화("Enable integration with my default WSL distro")와 강제 재시작**으로 해결했다.
-- 오류 메시지가 "docker 명령을 이 WSL 배포판에서 찾을 수 없다"며 **WSL integration 활성화**를 직접 안내하고 있어, 원인 가설이 맞았음을 확인했다. 해결 후에는 `docker info`가 `Server Version`을 정상 출력한다(5) 참고).
+- **확인**: 오류 메시지가 직접 "WSL integration을 활성화하라"고 안내한다. Docker Desktop 앱 → Settings → Resources → WSL Integration 에서 설정을 확인해 가설이 맞음을 확인했다.
+- **조치**: **"Enable integration with my default WSL distro"**를 활성화했다.
 
-### 트러블슈팅 #2
+**2차 오류** — 이후 명령 실행 시 권한 오류:
 
-- **문제**: 포트 매핑이 제대로 되지 않아 도커 컨테이너와 로컬(호스트) 간 연결 실패
-- **원인 가설**: `-p 호스트포트:컨테이너포트` 매핑이 잘못됨 (컨테이너 포트가 앱이 실제로 listen하는 포트와 다름)
-- **확인**: `docker ps`의 PORTS 열에서 매핑을 확인 (nginx는 컨테이너 내부 80 포트 사용)
-- **해결/대안**: 매핑을 수정(`-p 8080:80`)해 다시 실행 후 연결 정상 확인. 같은 호스트 포트를 쓰는 기존 컨테이너가 있으면 `docker rm -f`로 먼저 제거
-- **조치별 기대값**: 설정 활성화 후 `docker info`에 `Server Version: 29.9.2`가 표시되면 정상이다. 대안인 `sudo usermod -aG docker $USER`(docker 그룹 추가)는 Docker Desktop이 아닌 WSL 내부 도커 엔진을 쓸 때의 방법이라 이 환경에서는 사용하지 않았다.
-- **포트 점유 진단 순서**: ① `docker ps`로 컨테이너 매핑 확인 → ② `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인 → ③ 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트 사용. 종료할 수 없는 프로세스가 잡고 있거나 접속이 막히면 다른 호스트 포트로 재할당하고, Windows 방화벽의 해당 포트 허용 여부를 확인한다.
+```text
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+```
+
+- **확인**: **root 권한으로 docker 명령을 입력했는데도 권한 오류**가 났다. root는 소켓 파일 권한이나 `docker` 그룹과 무관하게 접근할 수 있으므로, 사용자 권한 문제가 아니라 **연결 과정에서 설정이 반영되지 않아 꼬인 것**으로 판단했다.
+- **조치/해결**: 강제 재시작(재부팅)한 뒤 `wsl --shutdown` → 재진입 → `docker info`로 확인했다. `Server Version: 29.9.2`가 출력되어 정상이다(5절 참고).
+
+- **대안 비교**: `permission denied ... docker.sock`은 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어(`sudo usermod -aG docker $USER`) 해결한다. 하지만 Docker Desktop을 쓰는 WSL은 호스트의 엔진을 연동하는 구조라 **WSL Integration 활성화와 재시작**이 해결책이다. 이 환경에서는 `docker` 그룹 방식은 사용하지 않았다.
+
+### 트러블슈팅 #2 — 포트 매핑 오류로 연결 실패
+
+- **문제**: 포트 매핑이 제대로 되지 않아 도커 컨테이너와 로컬(호스트) 간 연결이 실패했다.
+- **원인 가설**: `-p 호스트포트:컨테이너포트` 매핑이 잘못됨 (컨테이너 포트가 앱이 실제로 listen하는 포트와 다름).
+- **확인**: `docker ps`의 PORTS 열에서 매핑을 확인했다 (nginx는 컨테이너 내부 80 포트 사용).
+- **해결**: 매핑을 수정(`-p 8080:80`)해 다시 실행했고 연결이 정상임을 확인했다. 같은 호스트 포트를 쓰는 기존 컨테이너가 있으면 `docker rm -f`로 먼저 제거한다.
 
 재현 로그 (잘못된 매핑과 수정 후 비교. 당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록):
 
@@ -604,6 +679,14 @@ $ curl -sS http://localhost:8099
 ![port-mapping-fail](./assets/port-mapping-fail.png)
 
 - 호스트 포트는 LISTEN 상태라 **포트가 열려 있어도 컨테이너 내부 포트가 틀리면 연결이 끊긴다**는 점이 증상의 특징이다.
+
+### 참고: 포트 점유 진단 (매핑 오류와 별개의 문제)
+
+호스트 포트가 이미 사용 중이면 `port is already allocated` 오류가 난다. 이때의 진단 순서는 다음과 같다.
+
+1. `docker ps`로 컨테이너 매핑 확인
+2. `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인
+3. 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트를 사용한다. 종료할 수 없는 프로세스가 잡고 있거나 접속이 막히면 다른 호스트 포트로 재할당하고, Windows 방화벽의 해당 포트 허용 여부를 확인한다.
 
 ---
 
@@ -713,6 +796,7 @@ $ docker compose down
 ```
 
 - `${APP_PORT:-8080}`은 변수가 없으면 기본값 8080을 쓰는 문법이다. 같은 파일로 포트와 모드를 바꿔 실행할 수 있다.
+- **실제로 바뀌는 것은 호스트 매핑 포트뿐**이다. nginx는 `APP_PORT`, `APP_MODE`를 사용하지 않으므로 컨테이너 내부 포트는 80으로 고정이고, 환경 변수는 "설정을 외부에서 주입할 수 있음"을 `printenv`로 확인하는 용도다.
 
 ---
 
@@ -725,18 +809,23 @@ $ docker compose down
 
 ```bash
 $ git log --oneline
-d703e42 docs: mission01 실행 환경의 터미널 정보 기재
-e160e27 docs: mission01 스크린샷 추가 및 README 이미지 연결
-26fb3e6 docs: mission01 실습 결과 및 개념 정리 추가
+976cf36 docs: 미션 폴더명을 mission_01로 통일하고 최상단 README 작성
+1594aa5 docs: mission01 평가 보완 사항 반영 (curl -i, 권한/네트워크/볼륨 설명 등)
+6b6f8ad chore: mission01 중복 스크린샷 원본 파일 제거
 ...
 
 $ grep -rniE "password|token|secret" . --include="*.md"
-./mission01/CONCEPTS.md:131:- 점검: `git log --oneline`, `grep -ri "password\|token\|secret" . --include="*.md"`
+./mission_01/CONCEPTS.md:167:- 점검: `git log --oneline`, `grep -ri "password\|token\|secret" . --include="*.md"`
+./mission_01/README.md:...:$ grep -rniE "password|token|secret" . --include="*.md"
 # 점검 명령을 설명하는 문장만 일치 (실제 비밀값 없음)
 
 $ grep -rnE "BEGIN [A-Z ]*PRIVATE KEY|AAAAC3NzaC1|ghp_|github_pat_" . --exclude-dir=.git
-# 결과 없음 (개인키·공개키·토큰 패턴 없음)
+./mission_01/README.md:...:$ grep -rnE "BEGIN [A-Z ]*PRIVATE KEY|AAAAC3NzaC1|ghp_|github_pat_" . --exclude-dir=.git
+# 이 문서에 적힌 점검 명령 자체만 일치 (개인키·공개키·토큰 패턴 없음)
 ```
+
+- 폴더 이름을 `mission01`에서 `mission_01`로 바꾸기 전에 만든 커밋 메시지에는 `mission01`이 그대로 남아 있다(기록이므로 수정하지 않음).
+- GitHub 저장소 이름의 `pre-dgree`는 만들 때의 표기를 그대로 사용한 것이다.
 
 - SSH 키는 저장소에 올리지 않았고, 개인키는 로컬 `~/.ssh`에만 존재 (GitHub에는 공개키만 등록)
 - 스크린샷에는 GitHub 사용자 이름만 표시되고 토큰/인증 코드는 없음을 눈으로 확인
