@@ -492,10 +492,22 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
 ### 트러블슈팅 #1
 
-- **문제**: wsl 터미널에서 permission denied 도커 조작 실패
-- **원인 가설**: 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화
-- **확인**: docker desktop app 에서 설정 확인
-- **해결/대안**: 설정 활성화 후 wsl 완전 종료후 재실행
+- **문제**: wsl 터미널에서 permission denied 도커 조작 실패 (`docker info` 실행 시 아래 오류 발생)
+- **원인 가설**: 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화 (Docker Desktop의 WSL Integration 미활성화)
+- **확인**: docker desktop app 에서 설정 확인 (Settings → Resources → WSL Integration)
+- **해결/대안**: 설정 활성화 후 wsl 완전 종료후 재실행 (`wsl --shutdown` → 재진입 → `docker info`로 확인)
+
+원본 오류 로그:
+
+```text
+Server:
+ERROR: Error response from daemon: The command 'docker' could not be found in this WSL 2 distro.
+We recommend to activate the WSL integration in Docker Desktop settings.
+For details about using Docker Desktop with WSL 2, visit: https://docs.docker.com/go/wsl2/
+errors pretty printing info
+```
+
+- 오류 메시지가 "docker 명령을 이 WSL 배포판에서 찾을 수 없다"며 **WSL integration 활성화**를 직접 안내하고 있어, 원인 가설이 맞았음을 확인했다. 해결 후에는 `docker info`가 `Server Version`을 정상 출력한다(5) 참고).
 
 ### 트러블슈팅 #2
 
