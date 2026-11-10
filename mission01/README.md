@@ -46,7 +46,7 @@ git version 2.43.0
 - [x] Git 사용자 정보 및 기본 브랜치 설정
 - [x] GitHub SSH 키 등록 및 `ssh -T` 인증 확인
 - [x] VSCode ↔ GitHub 로그인 스크린샷
-- [ ] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (STEP 11)
+- [x] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (STEP 11)
 
 ---
 
@@ -419,3 +419,24 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
 - 본 문서와 로그/스크린샷에는 토큰, 비밀번호, 개인키, 인증 코드 등이 포함되어 있지 않음을 확인했습니다.
 - 민감정보가 노출된 경우 즉시 히스토리/문서에서 제거하고 재발급 절차를 수행했습니다. (해당 시)
+
+### 보안 점검 로그
+
+```bash
+$ git log --oneline
+d703e42 docs: mission01 실행 환경의 터미널 정보 기재
+e160e27 docs: mission01 스크린샷 추가 및 README 이미지 연결
+26fb3e6 docs: mission01 실습 결과 및 개념 정리 추가
+...
+
+$ grep -rniE "password|token|secret" . --include="*.md"
+./mission01/CONCEPTS.md:131:- 점검: `git log --oneline`, `grep -ri "password\|token\|secret" . --include="*.md"`
+# 점검 명령을 설명하는 문장만 일치 (실제 비밀값 없음)
+
+$ grep -rnE "BEGIN [A-Z ]*PRIVATE KEY|AAAAC3NzaC1|ghp_|github_pat_" . --exclude-dir=.git
+# 결과 없음 (개인키·공개키·토큰 패턴 없음)
+```
+
+- SSH 키는 저장소에 올리지 않았고, 개인키는 로컬 `~/.ssh`에만 존재 (GitHub에는 공개키만 등록)
+- 스크린샷에는 GitHub 사용자 이름만 표시되고 토큰/인증 코드는 없음을 눈으로 확인
+- Git 이메일은 README에 `<이메일>`로 마스킹함
