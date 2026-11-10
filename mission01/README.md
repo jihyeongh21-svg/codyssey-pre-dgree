@@ -40,12 +40,12 @@ git version 2.43.0
 - [x] `hello-world`, `ubuntu` 컨테이너 실행 실습
 - [x] Dockerfile 기반 웹 서버 컨테이너 빌드/실행
 - [x] 포트 매핑 접속 확인 (2회 이상)
-- [ ] 브라우저 접속 스크린샷 (주소창 포함) — 직접 캡처 필요
+- [x] 브라우저 접속 스크린샷 (주소창 포함)
 - [x] 바인드 마운트 변경 반영 검증
 - [x] Docker 볼륨 영속성 검증 (컨테이너 삭제 전/후)
 - [x] Git 사용자 정보 및 기본 브랜치 설정
 - [x] GitHub SSH 키 등록 및 `ssh -T` 인증 확인
-- [ ] VSCode ↔ GitHub 로그인 스크린샷 — 직접 캡처 필요
+- [x] VSCode ↔ GitHub 로그인 스크린샷
 - [ ] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (STEP 11)
 
 ---
@@ -321,7 +321,9 @@ b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seco
 
 > nginx는 컨테이너 내부 **80 포트**에서 대기하므로 매핑은 `호스트포트:80`입니다. (`:5000`은 Flask 등 다른 앱용)
 
-<!-- 브라우저 접속 스크린샷(주소창 포함)을 첨부하세요: ![port-mapping](./assets/port-mapping.png) -->
+![port-mapping-8080](./assets/port-mapping-8080.png)
+
+![port-mapping-8081](./assets/port-mapping-8081.png)
 
 ---
 
@@ -378,8 +380,9 @@ $ ssh -T git@github.com
 Hi jihyeongh21-svg! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
-<!-- VSCode에서 GitHub 로그인 및 저장소 연동 스크린샷 첨부 -->
-<!-- ![github-vscode](./assets/github-vscode.png) -->
+VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
+
+![github-vscode](./assets/github-vscode.png)
 
 ---
 
