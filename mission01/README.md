@@ -495,7 +495,7 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 - **문제**: wsl 터미널에서 permission denied 도커 조작 실패 (`docker info` 실행 시 아래 오류 발생)
 - **원인 가설**: 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화 (Docker Desktop의 WSL Integration 미활성화)
 - **확인**: docker desktop app 에서 설정 확인 (Settings → Resources → WSL Integration)
-- **해결/대안**: 설정 활성화 후 wsl 완전 종료후 재실행 (`wsl --shutdown` → 재진입 → `docker info`로 확인)
+- **해결/대안**: Docker Desktop 앱 → Settings → Resources → WSL Integration에서 **"Enable integration with my default WSL distro"**를 활성화하고, 강제 재시작(재부팅)했다. 이후 wsl 완전 종료후 재실행 (`wsl --shutdown` → 재진입 → `docker info`로 확인)
 
 원본 오류 로그 (1) — 명령 실행 시 권한 오류:
 
