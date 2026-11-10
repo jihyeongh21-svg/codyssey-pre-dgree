@@ -497,7 +497,13 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 - **확인**: docker desktop app 에서 설정 확인 (Settings → Resources → WSL Integration)
 - **해결/대안**: 설정 활성화 후 wsl 완전 종료후 재실행 (`wsl --shutdown` → 재진입 → `docker info`로 확인)
 
-원본 오류 로그:
+원본 오류 로그 (1) — 명령 실행 시 권한 오류:
+
+```text
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+```
+
+원본 오류 로그 (2) — `docker info` 실행 시:
 
 ```text
 Server:
@@ -507,6 +513,7 @@ For details about using Docker Desktop with WSL 2, visit: https://docs.docker.co
 errors pretty printing info
 ```
 
+- `permission denied ... docker.sock`은 WSL에서 도커 소켓(`/var/run/docker.sock`)에 접근할 권한이나 연동이 없을 때 나온다. 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어서 해결하지만, **Docker Desktop을 쓰는 WSL에서는 WSL Integration 활성화와 재시작**으로 해결했다.
 - 오류 메시지가 "docker 명령을 이 WSL 배포판에서 찾을 수 없다"며 **WSL integration 활성화**를 직접 안내하고 있어, 원인 가설이 맞았음을 확인했다. 해결 후에는 `docker info`가 `Server Version`을 정상 출력한다(5) 참고).
 
 ### 트러블슈팅 #2
