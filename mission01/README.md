@@ -513,7 +513,7 @@ For details about using Docker Desktop with WSL 2, visit: https://docs.docker.co
 errors pretty printing info
 ```
 
-- `permission denied ... docker.sock`은 WSL에서 도커 소켓(`/var/run/docker.sock`)에 접근할 권한이나 연동이 없을 때 나온다. 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어서 해결하지만, **Docker Desktop을 쓰는 WSL에서는 WSL Integration 활성화와 재시작**으로 해결했다.
+- `permission denied ... docker.sock`은 WSL에서 도커 소켓(`/var/run/docker.sock`)에 접근할 권한이나 연동이 없을 때 나온다. 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어서 해결하지만, **Docker Desktop을 쓰는 WSL에서는 WSL Integration 활성화("Enable integration with my default WSL distro")와 강제 재시작**으로 해결했다.
 - 오류 메시지가 "docker 명령을 이 WSL 배포판에서 찾을 수 없다"며 **WSL integration 활성화**를 직접 안내하고 있어, 원인 가설이 맞았음을 확인했다. 해결 후에는 `docker info`가 `Server Version`을 정상 출력한다(5) 참고).
 
 ### 트러블슈팅 #2
