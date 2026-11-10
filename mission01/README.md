@@ -81,6 +81,7 @@ codyssey-pre-dgree/
 - 미션 단위 폴더(`mission01`)로 나눠 이후 미션이 추가돼도 충돌하지 않게 한다.
 - **문서 / 증거 / 실습 파일을 분리**해서 문서만 읽어도 흐름이 보이고, 실습 파일만 실행해도 재현되게 한다.
 - 빌드 컨텍스트를 `webapp/` 하나로 좁혀 `COPY`가 불필요한 파일을 이미지에 넣지 않게 한다.
+- **접근 권한과 `.gitignore` 기준**: 폴더는 `755`, 문서/설정 파일은 `644`, 개인키 같은 비밀 파일은 `600`으로 두고 저장소에 올리지 않는다. `.gitignore`에는 `.venv/`, `.env`, `__pycache__/`처럼 재생성 가능하거나 비밀인 파일을 넣는다.
 - Compose 파일은 서비스 구성별 폴더로 나눠 `docker compose` 명령을 해당 폴더에서 실행한다(프로젝트 이름도 폴더명으로 구분됨).
 
 ---
@@ -150,6 +151,8 @@ sample.txt
 *추가로 가장앞이 d 일경우 디렉토리 없을 경우 파일*
 
 *파일종류(디렉토리/일반파일/소유자/그룹/기타 순으로 권한 표시*
+
+> **기대 동작과 복구 목적**: `444`로 바꾸면 쓰기 시도(`echo "test2" > sample.txt`)가 `Permission denied`로 **실패해야** 한다(root 계정은 예외라 성공할 수 있음). 이후 `chmod 644`는 쓰기를 다시 허용해 파일을 원래 상태로 되돌리기 위한 복구 명령이다.
 
 > **숫자 선택 근거**: `444`는 모두 읽기 전용이라 "쓰기가 실제로 차단되는지" 확인하기에 가장 단순한 값이고, `644`는 일반 파일의 기본값(소유자만 쓰기, 나머지는 읽기)이라 원상 복구용으로 사용했다. 디렉토리는 `755`(소유자 rwx, 나머지 r-x)가 기본값이고, `555`는 쓰기 차단을 확인하려고 `w`만 제거한 값이다.
 
@@ -230,6 +233,13 @@ $ docker info | grep -E "Server Version|Operating System|Context|Containers:|Run
  Server Version: 29.9.2
  Operating System: Docker Desktop
 ```
+
+| 확인 항목 | 값 | 판단 기준 |
+|---|---|---|
+| Server Version | 29.9.2 | 값이 출력되면 데몬 정상(실패 시 `Server:` 아래에 `ERROR`만 출력됨, 트러블슈팅 #1) |
+| Context | default | 연결 대상 엔진 |
+| Containers / Running | 2 / 0 | 전체 컨테이너 수 / 실행 중 수 |
+| Operating System | Docker Desktop | 엔진 종류 |
 
 - 요약: `docker info`가 `Server Version`을 반환하므로 **Docker 데몬이 정상 응답 중**이며, Docker Desktop 엔진을 사용한다.
 
@@ -423,6 +433,18 @@ b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seco
 
 ![port-mapping-8081](./assets/port-mapping-8081.png)
 
+HTTP 상태 코드 확인 (`curl -i`):
+
+```bash
+$ curl -i http://localhost:8080
+HTTP/1.1 200 OK
+Server: nginx/1.31.8
+Content-Type: text/html
+Content-Length: 36
+
+<h1>Hello from my custom image</h1>
+```
+
 ---
 
 ## 10) 바인드 마운트 반영 + 볼륨 영속성 증거
@@ -476,6 +498,8 @@ $ docker volume inspect mydata
 ]
 ```
 
+> 참고: 볼륨 파일의 소유자/권한은 컨테이너 안의 사용자(uid) 기준으로 만들어진다. Windows 경로(`/mnt/c`)를 바인드 마운트하면 WSL이 권한을 흉내 내서 `chmod`가 반영되지 않거나 소유자가 달라질 수 있으므로, WSL 안의 경로(`~/...`)나 Docker 볼륨을 쓰는 것이 안전하다.
+
 볼륨 생성 → 데이터 기록 → 컨테이너 삭제 → 재생성 후 데이터 유지(`hi`) 확인 화면:
 
 ![volume](./assets/volume.png)
@@ -499,6 +523,7 @@ $ git remote -v
 origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (fetch)
 origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (push)
 
+# SSH 키: 공개키 파일 ~/.ssh/id_ed25519.pub 내용만 GitHub → Settings → SSH and GPG keys에 등록
 # GitHub SSH 인증 확인 (공개키만 등록, 개인키는 노출하지 않음)
 $ ssh -T git@github.com
 Hi jihyeongh21-svg! You've successfully authenticated, but GitHub does not provide shell access.
@@ -548,7 +573,8 @@ errors pretty printing info
 - **원인 가설**: `-p 호스트포트:컨테이너포트` 매핑이 잘못됨 (컨테이너 포트가 앱이 실제로 listen하는 포트와 다름)
 - **확인**: `docker ps`의 PORTS 열에서 매핑을 확인 (nginx는 컨테이너 내부 80 포트 사용)
 - **해결/대안**: 매핑을 수정(`-p 8080:80`)해 다시 실행 후 연결 정상 확인. 같은 호스트 포트를 쓰는 기존 컨테이너가 있으면 `docker rm -f`로 먼저 제거
-- **포트 점유 진단 순서**: ① `docker ps`로 컨테이너 매핑 확인 → ② `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인 → ③ 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트 사용
+- **조치별 기대값**: 설정 활성화 후 `docker info`에 `Server Version: 29.9.2`가 표시되면 정상이다. 대안인 `sudo usermod -aG docker $USER`(docker 그룹 추가)는 Docker Desktop이 아닌 WSL 내부 도커 엔진을 쓸 때의 방법이라 이 환경에서는 사용하지 않았다.
+- **포트 점유 진단 순서**: ① `docker ps`로 컨테이너 매핑 확인 → ② `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인 → ③ 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트 사용. 종료할 수 없는 프로세스가 잡고 있거나 접속이 막히면 다른 호스트 포트로 재할당하고, Windows 방화벽의 해당 포트 허용 여부를 확인한다.
 
 재현 로그 (잘못된 매핑과 수정 후 비교. 당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록):
 
