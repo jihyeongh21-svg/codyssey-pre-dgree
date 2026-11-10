@@ -53,7 +53,7 @@ git version 2.43.0
 
 ```text
 codyssey-pre-dgree/
-└── mission01/
+└── mission_01/
     ├── README.md            # 수행 기록 (명령 + 출력 + 증거)
     ├── CONCEPTS.md          # 개념 정리
     ├── assets/              # 스크린샷 (README에서 참조)
@@ -69,16 +69,16 @@ codyssey-pre-dgree/
 
 | 경로 | 목적 |
 |---|---|
-| `mission01/README.md` | 제출용 실행 기록. 모든 명령과 출력을 한곳에 모음 |
-| `mission01/CONCEPTS.md` | 실습에서 쓴 개념(경로/권한/Docker/Git) 정리 노트 |
-| `mission01/assets/` | README가 참조하는 스크린샷만 보관 |
-| `mission01/practice/` | 실습 산출물 전용. 문서와 실습 파일을 분리 |
+| `mission_01/README.md` | 제출용 실행 기록. 모든 명령과 출력을 한곳에 모음 |
+| `mission_01/CONCEPTS.md` | 실습에서 쓴 개념(경로/권한/Docker/Git) 정리 노트 |
+| `mission_01/assets/` | README가 참조하는 스크린샷만 보관 |
+| `mission_01/practice/` | 실습 산출물 전용. 문서와 실습 파일을 분리 |
 | `practice/webapp/` | 이미지 빌드 단위. `Dockerfile`과 빌드 컨텍스트(`site/`)를 한 폴더에 둠 |
 | `practice/webapp/site/` | 컨테이너에 복사/마운트되는 정적 콘텐츠 |
 | `practice/compose/basic`, `multi` | Compose 구성 단위별 폴더. 두 구성이 같은 포트를 써서 함께 실행하지 않는다 |
 
 **설계 기준**
-- 미션 단위 폴더(`mission01`)로 나눠 이후 미션이 추가돼도 충돌하지 않게 한다.
+- 미션 단위 폴더(`mission_01`)로 나눠 이후 미션이 추가돼도 충돌하지 않게 한다.
 - **문서 / 증거 / 실습 파일을 분리**해서 문서만 읽어도 흐름이 보이고, 실습 파일만 실행해도 재현되게 한다.
 - 빌드 컨텍스트를 `webapp/` 하나로 좁혀 `COPY`가 불필요한 파일을 이미지에 넣지 않게 한다.
 - **접근 권한과 `.gitignore` 기준**: 폴더는 `755`, 문서/설정 파일은 `644`, 개인키 같은 비밀 파일은 `600`으로 두고 저장소에 올리지 않는다. `.gitignore`에는 `.venv/`, `.env`, `__pycache__/`처럼 재생성 가능하거나 비밀인 파일을 넣는다.
@@ -368,8 +368,8 @@ exit
 ### 준비 (작업 디렉토리와 정적 콘텐츠)
 
 ```bash
-$ mkdir -p ~/projects/codyssey-pre-dgree/mission01/practice/webapp/site
-$ cd ~/projects/codyssey-pre-dgree/mission01/practice/webapp
+$ mkdir -p ~/projects/codyssey-pre-dgree/mission_01/practice/webapp/site
+$ cd ~/projects/codyssey-pre-dgree/mission_01/practice/webapp
 $ echo "<h1>Hello from my custom image</h1>" > site/index.html
 # 아래 Dockerfile을 이 디렉토리(webapp/)에 `Dockerfile` 이름으로 저장
 ```
@@ -402,7 +402,7 @@ CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS     
 da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
 ```
 
-- **Dockerfile 위치**: [`mission01/practice/webapp/Dockerfile`](./practice/webapp/Dockerfile)
+- **Dockerfile 위치**: [`mission_01/practice/webapp/Dockerfile`](./practice/webapp/Dockerfile)
 - **빌드 성공 핵심 메시지**: `#7 naming to docker.io/library/my-web:1.0 done` (위 빌드 로그 마지막 줄)
 
 ![docker-build](./assets/docker-build.png)
@@ -452,7 +452,7 @@ Content-Length: 36
 ### 10-1. 바인드 마운트
 
 ```bash
-$ cd ~/projects/codyssey-pre-dgree/mission01/practice/webapp
+$ cd ~/projects/codyssey-pre-dgree/mission_01/practice/webapp
 $ docker run -d -p 8082:80 -v $(pwd)/site:/usr/share/nginx/html --name bind-test nginx:alpine
 
 # 변경 전
