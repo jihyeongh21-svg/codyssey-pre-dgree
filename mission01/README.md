@@ -15,36 +15,38 @@
 
 | 항목 | 값 |
 |---|---|
-| OS | <!-- 예: macOS 15.1 / Windows 11 + WSL2 Ubuntu 22.04 --> |
-| Shell | <!-- 예: zsh / bash --> |
-| 터미널 | <!-- 예: iTerm2 / Windows Terminal --> |
-| Docker (또는 OrbStack) | <!-- `docker --version` 결과 --> |
-| Git | <!-- `git --version` 결과 --> |
+| OS | Windows 11 Pro + WSL2 Ubuntu 24.04.5 LTS |
+| Shell | bash (zsh + Oh My Zsh + Starship 설치 완료, 기본 쉘 전환 전) |
+| 터미널 | <!-- 사용 중인 터미널 이름 (예: Windows Terminal) 직접 기재 --> |
+| Docker (또는 OrbStack) | Docker Desktop (WSL2 backend) — Docker version 29.9.2, build a82e528 |
+| Git | git version 2.43.0 |
 
 ```bash
 $ docker --version
-# 결과 붙여넣기
+Docker version 29.9.2, build a82e528
 
 $ git --version
-# 결과 붙여넣기
+git version 2.43.0
 ```
 
 ---
 
 ## 2) 수행 체크리스트
 
-- [ ] 터미널 기본 조작 및 작업 디렉토리 구성
-- [ ] 파일/디렉토리 권한 확인 및 변경 실습
-- [ ] Docker 설치 및 데몬 동작 점검
-- [ ] Docker 기본 운영 명령 수행 (images / ps / logs / stats)
-- [ ] `hello-world`, `ubuntu` 컨테이너 실행 실습
-- [ ] Dockerfile 기반 웹 서버 컨테이너 빌드/실행
-- [ ] 포트 매핑 접속 확인 (2회 이상)
-- [ ] 바인드 마운트 변경 반영 검증
-- [ ] Docker 볼륨 영속성 검증 (컨테이너 삭제 전/후)
-- [ ] Git 사용자 정보 및 기본 브랜치 설정
-- [ ] VSCode ↔ GitHub 로그인 및 저장소 연동
-- [ ] 민감정보(토큰/비밀번호/개인키) 마스킹 확인
+- [x] 터미널 기본 조작 및 작업 디렉토리 구성
+- [x] 파일/디렉토리 권한 확인 및 변경 실습
+- [x] Docker 설치 및 데몬 동작 점검
+- [x] Docker 기본 운영 명령 수행 (images / ps / logs / stats)
+- [x] `hello-world`, `ubuntu` 컨테이너 실행 실습
+- [x] Dockerfile 기반 웹 서버 컨테이너 빌드/실행
+- [x] 포트 매핑 접속 확인 (2회 이상)
+- [ ] 브라우저 접속 스크린샷 (주소창 포함) — 직접 캡처 필요
+- [x] 바인드 마운트 변경 반영 검증
+- [x] Docker 볼륨 영속성 검증 (컨테이너 삭제 전/후)
+- [x] Git 사용자 정보 및 기본 브랜치 설정
+- [x] GitHub SSH 키 등록 및 `ssh -T` 인증 확인
+- [ ] VSCode ↔ GitHub 로그인 스크린샷 — 직접 캡처 필요
+- [ ] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (STEP 11)
 
 ---
 
@@ -186,13 +188,21 @@ IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
 # 컨테이너 실행/중지/목록
 $ docker ps
 $ docker ps -a
-# 결과
-CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+# 결과 (hello-world, ubuntu-test 실행 후)
+CONTAINER ID   IMAGE         COMMAND                   CREATED         STATUS                              PORTS     NAMES
+3170f9ae3c9c   ubuntu        "bash -c 'ls; echo \"…"   1 second ago    Exited (0) Less than a second ago             ubuntu-test
+589bbe87dcaf   hello-world   "/hello"                  7 seconds ago   Exited (0) 6 seconds ago                      distracted_wozniak
 
-# 운영: 로그/리소스
-$ docker logs <container_name>
+# 운영: 로그/리소스 (STEP 8의 my-web 컨테이너 실행 중)
+$ docker logs my-web
+/docker-entrypoint.sh: Configuration complete; ready for start up
+2026/11/10 00:45:45 [notice] 1#1: nginx/1.31.8
+...
+172.17.0.1 - - [10/Nov/2026:00:45:47 +0000] "GET / HTTP/1.1" 200 36 "-" "curl/8.5.0" "-"
+
 $ docker stats --no-stream
-# 결과
+CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT     MEM %     NET I/O         BLOCK I/O     PIDS
+da97c4c13957   my-web    0.00%     21.59MiB / 15.25GiB   0.14%     1.76kB / 778B   0B / 8.19kB   25
 ```
 
 ---
@@ -256,10 +266,10 @@ exit
 
 ## 8) 기존 Dockerfile 기반 커스텀 이미지 제작
 
-- **선택한 기존 베이스**: <!-- 예: nginx:alpine -->
+- **선택한 기존 베이스**: `nginx:alpine` (경량 웹 서버 이미지)
 - **적용한 커스텀 포인트**:
-  1. <!-- 목적 요약 -->
-  2. <!-- 목적 요약 -->
+  1. `COPY site/ /usr/share/nginx/html/` — 기본 nginx 페이지를 직접 만든 정적 콘텐츠로 교체
+  2. `ENV APP_ENV=dev`, `LABEL org.opencontainers.image.title` — 실행 모드 표시 및 이미지 메타데이터 부여
 
 ### Dockerfile
 
@@ -274,10 +284,19 @@ COPY site/ /usr/share/nginx/html/
 
 ```bash
 $ docker build -t my-web:1.0 .
-# 결과
+#5 [1/2] FROM docker.io/library/nginx:alpine@sha256:713fc2eb...
+#6 [2/2] COPY site/ /usr/share/nginx/html/
+#7 naming to docker.io/library/my-web:1.0 done
 
 $ docker run -d -p 8080:80 --name my-web my-web:1.0
-# 결과
+da97c4c13957899efc90b4c474070898fc7c057e677c9329f05fd83319b3f7b8
+
+$ curl http://localhost:8080
+<h1>Hello from my custom image</h1>
+
+$ docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
 ```
 
 ---
@@ -285,14 +304,22 @@ $ docker run -d -p 8080:80 --name my-web my-web:1.0
 ## 9) 포트 매핑 및 접속 증거
 
 ```bash
-$ docker run -d -p 8080:5000 --name my-web-8080 my-web:1.0
+$ docker rm -f my-web   # STEP 6의 컨테이너가 8080을 쓰고 있으므로 먼저 제거
+$ docker run -d -p 8080:80 --name my-web-8080 my-web:1.0
 $ curl http://localhost:8080
-# 결과 1
+<h1>Hello from my custom image</h1>   # 결과 1
 
-$ docker run -d -p 8081:5000 --name my-web-8081 my-web:1.0
+$ docker run -d -p 8081:80 --name my-web-8081 my-web:1.0
 $ curl http://localhost:8081
-# 결과 2 (2회 접속 증거)
+<h1>Hello from my custom image</h1>   # 결과 2 (2회 접속 증거)
+
+$ docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+230c6a032793   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   my-web-8081
+b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web-8080
 ```
+
+> nginx는 컨테이너 내부 **80 포트**에서 대기하므로 매핑은 `호스트포트:80`입니다. (`:5000`은 Flask 등 다른 앱용)
 
 <!-- 브라우저 접속 스크린샷(주소창 포함)을 첨부하세요: ![port-mapping](./assets/port-mapping.png) -->
 
@@ -305,10 +332,15 @@ $ curl http://localhost:8081
 ```bash
 $ docker run -d -p 8082:80 -v $(pwd)/site:/usr/share/nginx/html --name bind-test nginx:alpine
 
-# 호스트에서 파일 변경
-$ echo "updated content" > site/index.html
+# 변경 전
 $ curl http://localhost:8082
-# 변경 반영 결과
+<h1>Hello from my custom image</h1>
+
+# 호스트에서 파일 변경
+$ echo "<h1>updated content</h1>" > site/index.html
+$ curl http://localhost:8082
+<h1>updated content</h1>
+# 컨테이너 재시작 없이 변경 반영됨
 ```
 
 ### 10-2. 볼륨 영속성
@@ -332,11 +364,18 @@ $ docker exec -it vol-test2 bash -lc "cat /data/hello.txt"
 ## 11) Git 설정 및 GitHub/VSCode 연동
 
 ```bash
-$ git config --global user.name "<이름>"
+$ git config --global user.name "jihyeongh21-svg"
 $ git config --global user.email "<이메일>"
 $ git config --global init.defaultBranch main
-$ git config --list
-# 결과
+$ git config --global --list
+user.email=<이메일>
+user.name=jihyeongh21-svg
+init.defaultbranch=main
+core.autocrlf=input
+
+# GitHub SSH 인증 확인 (공개키만 등록, 개인키는 노출하지 않음)
+$ ssh -T git@github.com
+Hi jihyeongh21-svg! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
 <!-- VSCode에서 GitHub 로그인 및 저장소 연동 스크린샷 첨부 -->
@@ -355,10 +394,11 @@ $ git config --list
 
 ### 트러블슈팅 #2
 
-- **문제**: <!-- 증상 -->
-- **원인 가설**: <!-- 의심되는 원인 -->
-- **확인**: <!-- 확인한 방법/명령 -->
-- **해결/대안**: <!-- 해결 방법 -->
+<!-- 직접 겪은 문제로 교체하세요. 아래는 작성 시 점검한 사전 확인 사항입니다. -->
+- **문제(사전 점검)**: 초안의 포트 매핑이 `-p 8080:5000`으로 되어 있었음 (nginx는 80 포트 사용)
+- **원인 가설**: 컨테이너 내부 포트(`:5000`)와 nginx 실제 listen 포트(80)가 불일치
+- **확인**: nginx 기본 설정이 80 포트 listen, `docker ps`의 PORTS 열 확인
+- **해결/대안**: `-p 8080:80`으로 수정. STEP 6의 `my-web`이 8080을 점유하므로 STEP 7 전에 `docker rm -f my-web` 필요
 
 ---
 
