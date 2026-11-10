@@ -4,7 +4,6 @@
 
 ## 📌 프로젝트 개요
 
-<!-- 미션 목표를 2~3문장으로 요약하세요. -->
 - 터미널(CLI), Docker, Git/GitHub를 직접 세팅하여 재현 가능한 개발 워크스테이션을 구축한다.
 - 이미지/컨테이너 분리, 포트·볼륨 연결 방식 등 컨테이너 환경의 구조적 원칙을 실습으로 검증한다.
 - 모든 수행 과정과 검증 결과를 본 문서에서 확인할 수 있도록 기록한다.
@@ -52,6 +51,8 @@ git version 2.43.0
 
 ## 3) 터미널 조작 로그
 
+> 참고: 3)~4)의 로그는 `/home/gkwlgud129430` 계정 환경(11월 4일)에서 실행한 기록이고, 5) 이후는 현재 WSL 환경에서 다시 실행한 기록입니다. 경로 표기가 다른 이유입니다.
+
 ### 3-1. 작업 디렉토리 구성
 
 ```bash
@@ -87,7 +88,7 @@ $ cp sample.txt sample_copy.txt
 $ mv sample_copy.txt renamed.txt ### 이동과  변경 동시 변경은 rename 따로 존재
 $ ls
 # 결과
-rename.txt  sample.txt
+renamed.txt  sample.txt
 $ rm renamed.txt
 $ ls
 # 결과
@@ -97,8 +98,6 @@ sample.txt
 ---
 
 ## 4) 권한 실습 및 증거 기록
-
-<!-- 파일 1개, 디렉토리 1개에 대해 권한 변경 전/후를 비교하세요. -->
 
 ### 4-1. 파일 권한 변경
 
@@ -116,7 +115,7 @@ sample.txt
 ```bash
 $ ls -l sample.txt
 # 변경 전 권한 (예: -rw-r--r--)
--rw-r--r-- 1 gkwlgud129430 gkwlgud129430 5 Nov  4 15:13 sample.tx
+-rw-r--r-- 1 gkwlgud129430 gkwlgud129430 5 Nov  4 15:13 sample.txt
 ### 일반파일/읽기쓰기/읽기/읽기 -> 숫자 변환 644(4+2/4/4)  
 $ chmod 444 sample.txt
 $ ls -l sample.txt
@@ -129,9 +128,11 @@ permission denied: sample.txt
 # 다시 쓰기 권한 부여
 $ chmod 644 sample.txt
 $ ls -l sample.txt
-$ echo "test2" > sample.txt
 # 결과
 -rw-r--r-- 1 gkwlgud129430 gkwlgud129430 6 Nov  4 15:53 sample.txt
+$ echo "test2" > sample.txt
+$ cat sample.txt
+# 결과
 test2
 
 ```
@@ -161,7 +162,7 @@ touch: cannot touch 'test.txt': Permission denied
 ```bash
 $ docker --version
 # 결과
-Docker version 29.9.2, build a82e52
+Docker version 29.9.2, build a82e528
 $ docker info
 # (또는 동등 점검 명령) 결과
  Version:    29.9.2
@@ -253,12 +254,10 @@ hello from container
 $ exit
 #결과
 exit
-\%
 ```
 
 ### 7-3. attach / exec 차이 정리
 
-<!-- 직접 관찰한 내용을 간단히 정리하세요. -->
 - `docker exec`: 실행 중인 컨테이너에 새 프로세스로 진입 (여러 세션 가능)
 - `docker attach`: 컨테이너의 메인 프로세스(PID 1)에 직접 연결
 
@@ -270,6 +269,15 @@ exit
 - **적용한 커스텀 포인트**:
   1. `COPY site/ /usr/share/nginx/html/` — 기본 nginx 페이지를 직접 만든 정적 콘텐츠로 교체
   2. `ENV APP_ENV=dev`, `LABEL org.opencontainers.image.title` — 실행 모드 표시 및 이미지 메타데이터 부여
+
+### 준비 (작업 디렉토리와 정적 콘텐츠)
+
+```bash
+$ mkdir -p ~/projects/codyssey-pre-dgree/mission01/practice/webapp/site
+$ cd ~/projects/codyssey-pre-dgree/mission01/practice/webapp
+$ echo "<h1>Hello from my custom image</h1>" > site/index.html
+# 아래 Dockerfile을 이 디렉토리(webapp/)에 `Dockerfile` 이름으로 저장
+```
 
 ### Dockerfile
 
@@ -332,6 +340,7 @@ b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seco
 ### 10-1. 바인드 마운트
 
 ```bash
+$ cd ~/projects/codyssey-pre-dgree/mission01/practice/webapp
 $ docker run -d -p 8082:80 -v $(pwd)/site:/usr/share/nginx/html --name bind-test nginx:alpine
 
 # 변경 전
@@ -390,10 +399,10 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 
 ### 트러블슈팅 #1
 
-- **문제**: <!-- wsl 터미널에서 permission denied 도커 조작 실패  -->
-- **원인 가설**: <!-- 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화  -->
-- **확인**: <!-- docker desktop app 에서 설정 확인 -->
-- **해결/대안**: <!-- 설정 활성화 후 wsl 완전 종료후 재실행 -->
+- **문제**: wsl 터미널에서 permission denied 도커 조작 실패
+- **원인 가설**: 도커 설정에서 터미널에서 접급을 허용하는 옵션 비활성화
+- **확인**: docker desktop app 에서 설정 확인
+- **해결/대안**: 설정 활성화 후 wsl 완전 종료후 재실행
 
 ### 트러블슈팅 #2
 
@@ -411,7 +420,7 @@ VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
 - [ ] Docker Compose 멀티 컨테이너 (웹 서버 + 보조 서비스 2개 이상, 네트워크 통신 확인)
 - [ ] Compose 운영 명령어 (`up` / `down` / `ps` / `logs`)
 - [ ] 환경 변수 활용 (포트/모드 변경)
-- [ ] GitHub SSH 키 설정 및 동작 확인
+- [x] GitHub SSH 키 설정 및 동작 확인 (11)의 `ssh -T` 결과 참고)
 
 ---
 
