@@ -187,7 +187,7 @@
 
 | 단계 | 명령 | 확인 |
 |---|---|---|
-| 1. 작업 디렉토리 | `mkdir -p ~/projects/codyssey-pre-dgree/mission_01/practice/webapp/site` 후 `cd` | `pwd`, `ls -la` |
+| 1. 작업 디렉토리 | `mkdir -p ~/projects/codyssey-pre-dgree/practice/webapp/site` 후 `cd` | `pwd`, `ls -la` |
 | 2. 권한 실습 | `chmod 444 sample.txt` → 쓰기 시도 → `chmod 644 sample.txt` | `ls -l` 전/후 |
 | 3. Docker 점검 | `docker --version`, `docker info`, `docker run hello-world` | 버전/메시지 출력 |
 | 4. 이미지 빌드 | `echo "<h1>Hello from my custom image</h1>" > site/index.html`, Dockerfile 작성, `docker build -t my-web:1.0 .` | `docker images` |

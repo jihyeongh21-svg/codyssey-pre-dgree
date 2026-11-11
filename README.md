@@ -1,71 +1,840 @@
-# 코디세이 연수 과정
+# 내 컴퓨터에 개발자용 '작업실' 꾸미기
 
-Codyssey 올인원 1기 입학 연수(Pre-course) 미션 수행 기록 저장소입니다. 미션별 폴더에 실습 파일, 실행 로그, 스크린샷, 개념 정리를 함께 보관합니다.
+> Codyssey 올인원 1기 입학 연수 — Pre-course Dev Setup Mission
 
-## 미션 목록
+## 📌 프로젝트 개요
 
-| 미션 | 주제 | 상태 | 문서 |
-|---|---|---|---|
-| [mission_01](./mission_01) | 개발자용 '작업실' 꾸미기 (터미널, 권한, Docker, Git/GitHub, Compose) | 완료 | [수행 기록](./mission_01/README.md) · [개념 정리](./mission_01/CONCEPTS.md) |
-| [mission_02](./mission_02) | (준비 중) | 진행 예정 | - |
+- 터미널(CLI), Docker, Git/GitHub를 직접 세팅하여 재현 가능한 개발 워크스테이션을 구축한다.
+- 이미지/컨테이너 분리, 포트·볼륨 연결 방식 등 컨테이너 환경의 구조적 원칙을 실습으로 검증한다.
+- 모든 수행 과정과 검증 결과를 본 문서에서 확인할 수 있도록 기록한다.
 
-## 저장소 구조
+---
 
-```text
-codyssey-pre-dgree/
-├── README.md                # 이 문서 (저장소 전체 안내)
-├── .gitignore
-├── mission_01/
-│   ├── README.md            # 수행 기록 (명령 + 출력 + 스크린샷)
-│   ├── CONCEPTS.md          # 개념 정리
-│   ├── assets/              # README가 참조하는 스크린샷
-│   └── practice/            # 실습 산출물
-│       ├── sample.txt       # 터미널/권한 실습 대상
-│       ├── webapp/          # Dockerfile(nginx:alpine) + site/index.html
-│       └── compose/         # basic/, multi/ (Docker Compose)
-└── mission_02/              # 다음 미션
-```
-
-**폴더 규칙**
-- 미션 폴더 이름은 `mission_NN` 형식(두 자리 숫자)으로 통일합니다.
-- 미션 폴더마다 `README.md`(수행 기록), `assets/`(스크린샷), `practice/`(실습 파일)를 두어 문서, 증거, 실습 파일을 분리합니다.
-- 개념 정리는 필요한 미션에만 `CONCEPTS.md`로 둡니다.
-
-## 실행 환경
+## 1) 실행 환경
 
 | 항목 | 값 |
 |---|---|
-| OS | Windows 11 + WSL2 (Ubuntu 24.04) |
-| 터미널 | VS Code 통합 터미널 (WSL 연결) |
-| 컨테이너 | Docker Desktop (WSL2 backend), Docker Compose v2 |
-| 버전 관리 | Git, GitHub (SSH 인증) |
-
-프로젝트는 WSL 리눅스 파일시스템(`~/projects`)에 두고 작업합니다. `/mnt/c` 경로는 I/O가 느리고 권한이 제대로 반영되지 않기 때문입니다.
-
-## 빠른 시작
+| OS | Windows 11 Pro + WSL2 Ubuntu 24.04.5 LTS |
+| Shell | bash (zsh + Oh My Zsh + Starship 설치 완료, 기본 쉘 전환 전) |
+| 터미널 | VS Code 통합 터미널 (WSL: Ubuntu-24.04 연결) |
+| Docker (또는 OrbStack) | Docker Desktop (WSL2 backend) — Docker version 29.9.2, build a82e528 |
+| Git | git version 2.43.0 |
 
 ```bash
-# 1) 저장소 받기 (SSH 키가 GitHub에 등록되어 있어야 함)
-cd ~/projects
-git clone git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git
-cd codyssey-pre-dgree
+$ docker --version
+Docker version 29.9.2, build a82e528
 
-# 2) mission_01 웹 이미지 빌드와 실행
-cd mission_01/practice/webapp
-docker build -t my-web:1.0 .
-docker run -d -p 8080:80 --name my-web my-web:1.0
-curl http://localhost:8080          # <h1>Hello from my custom image</h1>
-docker rm -f my-web
-
-# 3) Docker Compose (멀티 컨테이너)
-cd ../compose/multi
-docker compose up -d --build
-docker compose exec web ping -c 2 redis
-docker compose down
+$ git --version
+git version 2.43.0
 ```
 
-사전 조건: Docker Desktop 실행 중이며 WSL Integration이 켜져 있어야 합니다. 자세한 절차와 문제 해결은 [mission_01 수행 기록](./mission_01/README.md)의 트러블슈팅을 참고하세요.
+---
 
-## 보안
+## 2) 수행 체크리스트
 
-토큰, 비밀번호, 개인키, 인증 코드는 저장소와 스크린샷에 포함하지 않습니다. `.env`, `.venv/`, 개인키는 `.gitignore`로 제외합니다.
+- [x] 터미널 기본 조작 및 작업 디렉토리 구성
+- [x] 파일/디렉토리 권한 확인 및 변경 실습
+- [x] Docker 설치 및 데몬 동작 점검
+- [x] Docker 기본 운영 명령 수행 (images / ps / logs / stats)
+- [x] `hello-world`, `ubuntu` 컨테이너 실행 실습
+- [x] Dockerfile 기반 웹 서버 컨테이너 빌드/실행
+- [x] 포트 매핑 접속 확인 (2회 이상)
+- [x] 브라우저 접속 스크린샷 (주소창 포함)
+- [x] 바인드 마운트 변경 반영 검증
+- [x] Docker 볼륨 영속성 검증 (컨테이너 삭제 전/후)
+- [x] Git 사용자 정보 및 기본 브랜치 설정
+- [x] GitHub SSH 키 등록 및 `ssh -T` 인증 확인
+- [x] VSCode ↔ GitHub 로그인 스크린샷
+- [x] 민감정보(토큰/비밀번호/개인키) 마스킹 최종 확인 (보안 점검 로그 참고)
+
+---
+
+## 2-1) 디렉토리 구조와 설계 기준
+
+```text
+codyssey-pre-dgree/
+├── README.md            # 수행 기록 (명령 + 출력 + 증거)
+├── CONCEPTS.md          # 개념 정리
+├── assets/              # 스크린샷 (README에서 참조)
+└── practice/
+    ├── sample.txt       # 터미널/권한 실습 대상 파일
+    ├── webapp/
+    │   ├── Dockerfile   # nginx:alpine 기반 커스텀 이미지
+    │   └── site/        # 정적 콘텐츠 (index.html)
+    └── compose/
+        ├── basic/       # 단일 서비스 Compose
+        └── multi/       # web + redis + cache, 환경 변수
+```
+
+| 경로 | 목적 |
+|---|---|
+| `README.md` | 제출용 실행 기록. 모든 명령과 출력을 한곳에 모음 |
+| `CONCEPTS.md` | 실습에서 쓴 개념(경로/권한/Docker/Git) 정리 노트 |
+| `assets/` | README가 참조하는 스크린샷만 보관 |
+| `practice/` | 실습 산출물 전용. 문서와 실습 파일을 분리 |
+| `practice/webapp/` | 이미지 빌드 단위. `Dockerfile`과 빌드 컨텍스트(`site/`)를 한 폴더에 둠 |
+| `practice/webapp/site/` | 컨테이너에 복사/마운트되는 정적 콘텐츠 |
+| `practice/compose/basic`, `multi` | Compose 구성 단위별 폴더. 두 구성이 같은 포트를 써서 함께 실행하지 않는다 |
+
+**설계 기준**
+- **문서 / 증거 / 실습 파일을 분리**해서 문서만 읽어도 흐름이 보이고, 실습 파일만 실행해도 재현되게 한다.
+- 빌드 컨텍스트를 `webapp/` 하나로 좁혀 `COPY`가 불필요한 파일을 이미지에 넣지 않게 한다.
+- **접근 권한과 `.gitignore` 기준**: 폴더는 `755`, 문서/설정 파일은 `644`, 개인키 같은 비밀 파일은 `600`으로 두고 저장소에 올리지 않는다. `.gitignore`에는 `.venv/`, `.env`, `__pycache__/`처럼 재생성 가능하거나 비밀인 파일을 넣는다.
+- Compose 파일은 서비스 구성별 폴더로 나눠 `docker compose` 명령을 해당 폴더에서 실행한다(프로젝트 이름도 폴더명으로 구분됨).
+
+---
+
+## 2-2) 검증 방법과 증거 위치
+
+| 항목 | 검증 명령 | 판단 기준 | 증거 위치 |
+|---|---|---|---|
+| 터미널 조작 | `pwd`, `ls -la`, `mkdir`, `touch`, `cp`, `mv`, `rm`, `cat` | 명령별 출력이 기대와 일치 | [3)](#3-터미널-조작-로그), ![](./assets/terminal-files.png) |
+| 권한 변경 | `ls -l`, `ls -ld`, `chmod`, 쓰기/생성 시도 | 변경 전/후 권한 문자열 변화, 차단 시 `Permission denied` | [4)](#4-권한-실습-및-증거-기록) |
+| Docker 점검 | `docker --version`, `docker info` | `Server Version` 출력 | [5)](#5-docker-설치-및-기본-점검), 트러블슈팅 #1 |
+| 운영 명령 | `docker images`, `docker ps -a`, `docker logs`, `docker stats` | 이미지/컨테이너/로그/리소스 출력 | [6)](#6-docker-기본-운영-명령-수행) |
+| 컨테이너 실행 | `docker run hello-world`, `docker run ... ubuntu`, `exec`/`attach` | 메시지 출력, 종료 시 상태 차이 | [7)](#7-컨테이너-실행-실습) |
+| Dockerfile 빌드 | `docker build -t my-web:1.0 .` | `naming to ... my-web:1.0 done` | [8)](#8-기존-dockerfile-기반-커스텀-이미지-제작) |
+| 포트 매핑 | `docker run -p 8080:80`, `-p 8081:80`, `curl -i` | HTTP 200 + 브라우저 주소창(포트 포함) | [9)](#9-포트-매핑-및-접속-증거) |
+| 바인드 마운트 | 호스트에서 `site/index.html` 수정 후 `curl` | 재시작 없이 응답 변경 | [10-1)](#10-1-바인드-마운트) |
+| 볼륨 영속성 | 컨테이너 삭제 전/후 `cat /data/hello.txt` | 삭제 후에도 `hi` 유지 | [10-2)](#10-2-볼륨-영속성) |
+| Git/GitHub | `git config --global --list`, `git remote -v`, `ssh -T git@github.com` | 사용자 정보, 원격 URL, 인증 성공 메시지 | [11)](#11-git-설정-및-githubvscode-연동) |
+| 보안 점검 | `grep`으로 키/토큰 패턴 검색 | 실제 비밀값 없음 | [보안 점검 로그](#보안-점검-로그) |
+| 보너스(Compose) | `docker compose up/ps/logs/down`, `ping` | 서비스 이름으로 통신 | [13)](#13-보너스-과제-선택) |
+
+---
+
+## 3) 터미널 조작 로그
+
+> 실행 환경: WSL2 Ubuntu 24.04, bash, root 계정. 저장소를 어지럽히지 않도록 `practice/` 아래 임시 디렉토리 `lab/`에서 실행하고 마지막에 삭제했다.
+
+### 3-1. 작업 디렉토리 구성 (위치 확인 · 생성 · 이동 · 목록)
+
+```bash
+# 현재 위치 확인 (절대 경로)
+$ pwd
+/root/projects/codyssey-pre-dgree/practice
+
+# 디렉토리 생성 후 이동
+$ mkdir -p lab
+$ cd lab
+$ pwd
+/root/projects/codyssey-pre-dgree/practice/lab
+
+# 숨김 파일 포함 목록 (.은 현재, ..은 상위 디렉토리)
+$ ls -la
+total 8
+drwxr-xr-x 2 root root 4096 Nov 10 12:39 .
+drwxr-xr-x 5 root root 4096 Nov 10 12:39 ..
+```
+
+### 3-2. 파일 생성 · 내용 확인 · 복사 · 이동/이름 변경 · 삭제
+
+```bash
+# 빈 파일 생성 후 확인 (크기 0, 내용 없음)
+$ touch sample.txt
+$ ls -la
+total 8
+drwxr-xr-x 2 root root 4096 Nov 10 12:39 .
+drwxr-xr-x 5 root root 4096 Nov 10 12:39 ..
+-rw-r--r-- 1 root root    0 Nov 10 12:39 sample.txt
+$ cat sample.txt
+
+# 내용 쓰기와 확인
+$ echo "test" > sample.txt
+$ cat sample.txt
+test
+
+# 복사 / 이동·이름 변경 / 삭제
+$ cp sample.txt sample_copy.txt
+$ mv sample_copy.txt renamed.txt
+$ ls
+renamed.txt
+sample.txt
+$ rm renamed.txt
+$ ls
+sample.txt
+
+# 실습 디렉토리 정리
+$ cd ..
+$ rm -r lab
+```
+
+- `mv`는 **이동과 이름 변경을 모두** 수행한다(같은 디렉토리 안에서 쓰면 이름 변경). 여러 파일의 이름을 한꺼번에 바꾸는 `rename`은 별도 유틸리티다.
+
+터미널 실행 화면 (`practice/`에서 같은 명령 구성으로 실행한 화면):
+
+![terminal-files](./assets/terminal-files.png)
+
+---
+
+## 4) 권한 실습 및 증거 기록
+
+> root 계정은 권한 검사를 대부분 건너뛰어 `444` 파일에도 쓸 수 있다. 그래서 권한 실습은 **비특권 사용자 `nobody`**로 임시 디렉토리 `/tmp/permlab`에서 실행했다(`runuser -u nobody`). 실행 후 디렉토리는 삭제했다.
+
+### 4-1. 파일 권한 변경
+
+| 표기 | 의미 |
+|---|---|
+| `r` / `w` / `x` | 읽기(4) / 쓰기(2) / 실행(1) |
+| `644` | 소유자 rw-, 그룹 r--, 기타 r-- |
+| `755` | 소유자 rwx, 그룹 r-x, 기타 r-x |
+
+- `ls -l`의 첫 글자는 종류(`-` 일반 파일, `d` 디렉토리)이고, 이어서 소유자 · 그룹 · 기타 순으로 3글자씩 권한을 표시한다.
+
+> **기대 동작과 복구 목적**: `444`로 바꾸면 쓰기 시도(`echo "test2" > sample.txt`)가 `Permission denied`로 **실패해야** 한다. 이후 `chmod 644`는 쓰기를 다시 허용해 파일을 원래 상태로 되돌리기 위한 복구 명령이다.
+
+> **숫자 선택 근거**: `444`는 모두 읽기 전용이라 "쓰기가 실제로 차단되는지" 확인하기에 가장 단순한 값이고, `644`는 일반 파일의 기본값(소유자만 쓰기, 나머지는 읽기)이라 원상 복구용으로 사용했다. 디렉토리는 `755`(소유자 rwx, 나머지 r-x)가 기본값이고, `555`는 쓰기 차단을 확인하려고 `w`만 제거한 값이다.
+
+```bash
+$ whoami
+nobody
+$ echo "test" > sample.txt
+$ ls -l sample.txt
+# 변경 전: 644 (rw-r--r--)
+-rw-r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
+
+$ chmod 444 sample.txt
+$ ls -l sample.txt
+# 변경 후: 444 (r--r--r--)
+-r--r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
+
+# 쓰기 시도 -> 실패하고 내용은 그대로
+$ echo "test2" > sample.txt
+bash: line 1: sample.txt: Permission denied
+$ cat sample.txt
+test
+
+# 복구: 다시 644
+$ chmod 644 sample.txt
+$ ls -l sample.txt
+-rw-r--r-- 1 nobody nogroup 5 Nov 10 12:39 sample.txt
+$ echo "test2" > sample.txt
+$ cat sample.txt
+test2
+```
+
+root 계정에서 `ls -l`로 본 권한 문자열 변화 화면(`644` → `444` → `644`). root는 쓰기 차단이 적용되지 않으므로, 쓰기 실패 증거는 위 `nobody` 로그로 대신한다.
+
+![permissions](./assets/permissions.png)
+
+### 4-2. 디렉토리 권한 변경
+
+```bash
+$ mkdir testdir
+$ ls -ld testdir
+# 변경 전: 755
+drwxr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
+
+$ chmod 555 testdir
+$ ls -ld testdir
+# 변경 후: 555 (w 없음)
+dr-xr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
+
+# 쓰기 불가 확인: 디렉토리 안에 파일 생성 시도
+$ touch testdir/a.txt
+touch: cannot touch 'testdir/a.txt': Permission denied
+
+# 복구: 다시 755
+$ chmod 755 testdir
+$ ls -ld testdir
+drwxr-xr-x 2 nobody nogroup 4096 Nov 10 12:39 testdir
+$ touch testdir/a.txt
+$ ls -l testdir
+total 0
+-rw-r--r-- 1 nobody nogroup 0 Nov 10 12:39 a.txt
+```
+
+- 디렉토리의 `w`는 **그 안에 파일을 만들고 지우는 권한**이다. `555`에서 생성이 막혔고, `755`로 복구하자 다시 생성된다.
+
+---
+
+## 5) Docker 설치 및 기본 점검
+
+```bash
+$ docker --version
+# 결과
+Docker version 29.9.2, build a82e528
+# 데몬 동작 확인: docker info 출력에서 핵심 항목만 추출
+$ docker info | grep -E "Server Version|Operating System|Context|Containers:|Running:"
+ Context:    default
+ Containers: 2
+  Running: 0
+ Server Version: 29.9.2
+ Operating System: Docker Desktop
+```
+
+| 확인 항목 | 값 | 판단 기준 |
+|---|---|---|
+| Server Version | 29.9.2 | 값이 출력되면 데몬 정상(실패 시 `Server:` 아래에 `ERROR`만 출력됨, 트러블슈팅 #1) |
+| Context | default | 연결 대상 엔진 |
+| Containers / Running | 2 / 0 | 전체 컨테이너 수 / 실행 중 수 |
+| Operating System | Docker Desktop | 엔진 종류 |
+
+- 요약: `docker info`가 `Server Version`을 반환하므로 **Docker 데몬이 정상 응답 중**이며, Docker Desktop 엔진을 사용한다.
+
+![docker-check](./assets/docker-check.png)
+
+---
+
+## 6) Docker 기본 운영 명령 수행
+
+```bash
+# 컨테이너 실행/중지/목록
+$ docker ps
+$ docker ps -a
+# 결과 (hello-world, ubuntu-test 실행 후)
+CONTAINER ID   IMAGE         COMMAND                   CREATED         STATUS                              PORTS     NAMES
+3170f9ae3c9c   ubuntu        "bash -c 'ls; echo \"…"   1 second ago    Exited (0) Less than a second ago             ubuntu-test
+589bbe87dcaf   hello-world   "/hello"                  7 seconds ago   Exited (0) 6 seconds ago                      distracted_wozniak
+
+# 운영: 로그/리소스 (8절에서 만든 my-web 컨테이너 실행 중)
+$ docker logs my-web
+/docker-entrypoint.sh: Configuration complete; ready for start up
+2026/11/10 00:45:45 [notice] 1#1: nginx/1.31.8
+...
+172.17.0.1 - - [10/Nov/2026:00:45:47 +0000] "GET / HTTP/1.1" 200 36 "-" "curl/8.5.0" "-"
+
+$ docker stats --no-stream
+CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT     MEM %     NET I/O         BLOCK I/O     PIDS
+da97c4c13957   my-web    0.00%     21.59MiB / 15.25GiB   0.14%     1.76kB / 778B   0B / 8.19kB   25
+
+# 이미지 목록 (실습 진행 후)
+$ docker images
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+basic-web:latest     faf2a950bb5d       93.7MB         26.4MB
+hello-world:latest   c567b231f656       25.9kB         9.49kB   U
+memcached:alpine     bfc2ee42c4ed         20MB         6.06MB
+multi-web:latest     eaf3edb36309       93.7MB         26.4MB
+my-web:1.0           99d8ef8f16f2       93.7MB         26.4MB
+nginx:alpine         713fc2ebfd92       94.5MB         27.3MB
+redis:alpine         71885d8cc6e4        162MB           40MB
+ubuntu:latest        6a06111c3b0a        163MB         45.9MB   U
+```
+
+`docker images`와 `docker ps -a` 실행 화면:
+
+![docker-images](./assets/docker-images.png)
+
+---
+
+## 7) 컨테이너 실행 실습
+
+### 7-1. hello-world
+
+```bash
+$ docker run hello-world
+# 결과
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+To try something more ambitious, you can run an Ubuntu container with:
+ $ docker run -it ubuntu bash
+
+Share images, automate workflows, and more with a free Docker ID:
+ https://hub.docker.com/
+
+For more examples and ideas, visit:
+ https://docs.docker.com/get-started/
+
+```
+
+![hello-world](./assets/hello-world.png)
+
+### 7-2. ubuntu 컨테이너 진입 및 명령 실행
+
+```bash
+# 컨테이너 안에서 ls, echo, pwd를 실행 (6절 `docker ps -a`의 ubuntu-test 와 같은 명령)
+$ docker run --name ubuntu-test ubuntu bash -c 'ls; echo "hello from container"; pwd'
+bin
+boot
+dev
+etc
+home
+lib
+lib64
+media
+mnt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
+hello from container
+/
+```
+
+- 대화형(`-it`)으로 컨테이너 쉘에 직접 들어가는 방식은 7-3의 `docker exec -it`로 확인한다.
+
+### 7-3. attach / exec 차이 정리
+
+- `docker exec`: 실행 중인 컨테이너에 새 프로세스로 진입 (여러 세션 가능)
+- `docker attach`: 컨테이너의 메인 프로세스(PID 1)에 직접 연결
+
+직접 관찰한 차이 (터미널 입력 대신 파이프로 `hostname`, `exit`를 전달해 실행. 직접 `-it`로 입력해도 같은 결과):
+
+```bash
+# exec: 백그라운드 컨테이너(메인 프로세스 sleep)에 새 쉘로 진입했다가 종료
+$ docker run -d --name bg-test ubuntu sleep infinity
+$ docker exec -it bg-test bash      # 입력: hostname, exit
+a6277be86419
+$ docker ps --format 'table {{.Names}}\t{{.Status}}'
+NAMES     STATUS
+bg-test   Up Less than a second     # 쉘을 종료해도 컨테이너는 유지됨
+
+# attach: 메인 프로세스가 bash 인 컨테이너에 직접 연결해 exit
+$ docker run -d -i --name att-test ubuntu bash
+$ docker attach att-test            # 입력: exit
+$ docker ps -a --format 'table {{.Names}}\t{{.Status}}'
+NAMES                STATUS
+att-test             Exited (0) 1 second ago     # 메인 프로세스가 끝나 컨테이너도 종료
+bg-test              Up 1 second
+```
+
+| 구분 | 종료 시 동작 | 이유 |
+|---|---|---|
+| `docker exec -it <name> bash` | 쉘을 `exit`해도 **컨테이너는 계속 실행**됨 | 메인 프로세스와 별개로 새로 띄운 프로세스만 종료되기 때문 |
+| `docker attach <name>` | 메인 프로세스를 `exit`로 끝내면 **컨테이너도 멈춤** | 메인 프로세스(PID 1)에 직접 붙어 있어서 그 프로세스가 끝나면 컨테이너도 끝나기 때문 |
+
+- `attach` 중 `Ctrl+P` → `Ctrl+Q`로 **분리(detach)**하면 컨테이너는 계속 실행된다. 즉 "종료 방식에 따라" 달라진다.
+- 컨테이너를 유지한 채 접속·점검하려면 `exec`, 메인 프로세스의 입출력을 그대로 보려면 `attach`를 사용한다.
+
+```bash
+# 정리
+$ docker rm -f bg-test att-test
+```
+
+---
+
+## 8) 기존 Dockerfile 기반 커스텀 이미지 제작
+
+- **선택한 기존 베이스**: `nginx:alpine` (경량 웹 서버 이미지)
+- **적용한 커스텀 포인트**:
+  1. `COPY site/ /usr/share/nginx/html/` — 기본 nginx 페이지를 직접 만든 정적 콘텐츠로 교체
+  2. `ENV APP_ENV=dev`, `LABEL org.opencontainers.image.title` — 실행 모드 표시 및 이미지 메타데이터 부여
+
+### 준비 (작업 디렉토리와 정적 콘텐츠)
+
+```bash
+$ mkdir -p ~/projects/codyssey-pre-dgree/practice/webapp/site
+$ cd ~/projects/codyssey-pre-dgree/practice/webapp
+$ echo "<h1>Hello from my custom image</h1>" > site/index.html
+# 아래 Dockerfile을 이 디렉토리(webapp/)에 `Dockerfile` 이름으로 저장
+```
+
+### Dockerfile
+
+```dockerfile
+FROM nginx:alpine
+LABEL org.opencontainers.image.title="my-custom-nginx"
+ENV APP_ENV=dev
+COPY site/ /usr/share/nginx/html/
+```
+
+### 빌드/실행 결과
+
+```bash
+$ docker build -t my-web:1.0 .
+#5 [1/2] FROM docker.io/library/nginx:alpine@sha256:713fc2eb...
+#6 [2/2] COPY site/ /usr/share/nginx/html/
+#7 naming to docker.io/library/my-web:1.0 done
+
+$ docker run -d -p 8080:80 --name my-web my-web:1.0
+da97c4c13957899efc90b4c474070898fc7c057e677c9329f05fd83319b3f7b8
+
+$ curl http://localhost:8080
+<h1>Hello from my custom image</h1>
+
+$ docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+da97c4c13957   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
+```
+
+- **Dockerfile 위치**: [`practice/webapp/Dockerfile`](./practice/webapp/Dockerfile)
+- **빌드 성공 핵심 메시지**: `#7 naming to docker.io/library/my-web:1.0 done` (위 빌드 로그 마지막 줄)
+
+![docker-build](./assets/docker-build.png)
+
+---
+
+## 9) 포트 매핑 및 접속 증거
+
+```bash
+$ docker rm -f my-web   # 8절의 컨테이너가 8080을 쓰고 있으므로 먼저 제거
+$ docker run -d -p 8080:80 --name my-web-8080 my-web:1.0
+$ curl http://localhost:8080
+<h1>Hello from my custom image</h1>   # 결과 1
+
+$ docker run -d -p 8081:80 --name my-web-8081 my-web:1.0
+$ curl http://localhost:8081
+<h1>Hello from my custom image</h1>   # 결과 2 (2회 접속 증거)
+
+$ docker ps
+CONTAINER ID   IMAGE        COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+230c6a032793   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   my-web-8081
+b9fbe47d2e94   my-web:1.0   "/docker-entrypoint.…"   2 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web-8080
+
+# 정리
+$ docker rm -f my-web-8080 my-web-8081
+```
+
+> nginx는 컨테이너 내부 **80 포트**에서 대기하므로 매핑은 `호스트포트:80`입니다. (`:5000`은 Flask 등 다른 앱용)
+
+![port-mapping-8080](./assets/port-mapping-8080.png)
+
+![port-mapping-8081](./assets/port-mapping-8081.png)
+
+HTTP 상태 코드 확인 (`curl -i`):
+
+```bash
+$ curl -i http://localhost:8080
+HTTP/1.1 200 OK
+Server: nginx/1.31.8
+Content-Type: text/html
+Content-Length: 36
+
+<h1>Hello from my custom image</h1>
+```
+
+---
+
+## 10) 바인드 마운트 반영 + 볼륨 영속성 증거
+
+### 10-1. 바인드 마운트
+
+```bash
+$ cd ~/projects/codyssey-pre-dgree/practice/webapp
+$ docker run -d -p 8082:80 -v $(pwd)/site:/usr/share/nginx/html --name bind-test nginx:alpine
+
+# 변경 전
+$ curl http://localhost:8082
+<h1>Hello from my custom image</h1>
+
+# 호스트에서 파일 변경
+$ echo "<h1>updated content</h1>" > site/index.html
+$ curl http://localhost:8082
+<h1>updated content</h1>
+# 컨테이너 재시작 없이 변경 반영됨
+
+# 원복 및 정리 (원복하지 않으면 이후 build/Compose 응답이 updated content 로 달라짐)
+$ echo "<h1>Hello from my custom image</h1>" > site/index.html
+$ docker rm -f bind-test
+```
+
+### 10-2. 볼륨 영속성
+
+```bash
+$ docker volume create mydata
+$ docker run -d --name vol-test -v mydata:/data ubuntu sleep infinity
+$ docker exec -it vol-test bash -lc "echo hi > /data/hello.txt && cat /data/hello.txt"
+# hi
+
+$ docker rm -f vol-test
+
+# 컨테이너 삭제 후 재생성하여 데이터 유지 확인
+$ docker run -d --name vol-test2 -v mydata:/data ubuntu sleep infinity
+$ docker exec -it vol-test2 bash -lc "cat /data/hello.txt"
+# hi (삭제 전/후 데이터 유지 확인)
+
+# 볼륨 목록 / 상세 (컨테이너와 별개로 볼륨이 남아 있음)
+$ docker volume ls
+DRIVER    VOLUME NAME
+local     mydata
+
+$ docker volume inspect mydata
+[
+    {
+        "CreatedAt": "2026-11-10T01:57:00Z",
+        "Driver": "local",
+        "Mountpoint": "/var/lib/docker/volumes/mydata/_data",
+        "Name": "mydata",
+        "Scope": "local"
+    }
+]
+
+# 정리
+$ docker rm -f vol-test2
+$ docker volume rm mydata
+```
+
+> 참고: 볼륨 파일의 소유자/권한은 컨테이너 안의 사용자(uid) 기준으로 만들어진다. Windows 경로(`/mnt/c`)를 바인드 마운트하면 WSL이 권한을 흉내 내서 `chmod`가 반영되지 않거나 소유자가 달라질 수 있으므로, WSL 안의 경로(`~/...`)나 Docker 볼륨을 쓰는 것이 안전하다.
+
+볼륨 생성 → 데이터 기록 → 컨테이너 삭제 → 재생성 후 데이터 유지(`hi`) 확인 화면:
+
+![volume](./assets/volume.png)
+
+---
+
+## 11) Git 설정 및 GitHub/VSCode 연동
+
+```bash
+$ git config --global user.name "jihyeongh21-svg"
+$ git config --global user.email "<이메일>"
+$ git config --global init.defaultBranch main
+$ git config --global --list
+user.email=<이메일>
+user.name=jihyeongh21-svg
+init.defaultbranch=main
+core.autocrlf=input
+
+# 저장소 루트에서 원격 URL 확인
+$ git remote -v
+origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (fetch)
+origin	git@github.com:jihyeongh21-svg/codyssey-pre-dgree.git (push)
+
+# SSH 키: 공개키 파일 ~/.ssh/id_ed25519.pub 내용만 GitHub → Settings → SSH and GPG keys에 등록
+# GitHub SSH 인증 확인 (공개키만 등록, 개인키는 노출하지 않음)
+$ ssh -T git@github.com
+Hi jihyeongh21-svg! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+`git remote -v`, 사용자 이름, 기본 브랜치, SSH 인증 확인 화면:
+
+![git-remote](./assets/git-remote.png)
+
+VSCode GitHub 로그인(계정 메뉴) 및 소스 제어/커밋 그래프:
+
+![github-vscode](./assets/github-vscode.png)
+
+---
+
+## 12) 트러블슈팅 (2건 이상)
+
+### 트러블슈팅 #1 — WSL에서 docker 명령 실패
+
+- **문제**: WSL 터미널에서 docker 조작이 실패했다. 오류가 두 단계로 나타났다.
+- **원인 가설**: 도커 설정에서 터미널(WSL)로의 접근을 허용하는 옵션이 비활성화되어 있다 (Docker Desktop의 WSL Integration 미활성화).
+
+**1차 오류** — `docker info` 실행 시:
+
+```text
+Server:
+ERROR: Error response from daemon: The command 'docker' could not be found in this WSL 2 distro.
+We recommend to activate the WSL integration in Docker Desktop settings.
+For details about using Docker Desktop with WSL 2, visit: https://docs.docker.com/go/wsl2/
+errors pretty printing info
+```
+
+- **확인**: 오류 메시지가 직접 "WSL integration을 활성화하라"고 안내한다. Docker Desktop 앱 → Settings → Resources → WSL Integration 에서 설정을 확인해 가설이 맞음을 확인했다.
+- **조치**: **"Enable integration with my default WSL distro"**를 활성화했다.
+
+**2차 오류** — 이후 명령 실행 시 권한 오류:
+
+```text
+permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+```
+
+- **확인**: **root 권한으로 docker 명령을 입력했는데도 권한 오류**가 났다. root는 소켓 파일 권한이나 `docker` 그룹과 무관하게 접근할 수 있으므로, 사용자 권한 문제가 아니라 **연결 과정에서 설정이 반영되지 않아 꼬인 것**으로 판단했다.
+- **조치/해결**: 강제 재시작(재부팅)한 뒤 `wsl --shutdown` → 재진입 → `docker info`로 확인했다. `Server Version: 29.9.2`가 출력되어 정상이다(5절 참고).
+
+- **대안 비교**: `permission denied ... docker.sock`은 일반 리눅스에서는 사용자를 `docker` 그룹에 넣어(`sudo usermod -aG docker $USER`) 해결한다. 하지만 Docker Desktop을 쓰는 WSL은 호스트의 엔진을 연동하는 구조라 **WSL Integration 활성화와 재시작**이 해결책이다. 이 환경에서는 `docker` 그룹 방식은 사용하지 않았다.
+
+### 트러블슈팅 #2 — 이미 사용 중인 localhost 포트로 매핑해 연결 실패
+
+- **문제**: 이미 다른 대상이 쓰고 있는 localhost(호스트) 포트로 컨테이너를 매핑하자 도커 컨테이너와 로컬 간 연결이 실패했다.
+- **원인**: 호스트 포트는 한 번에 하나의 대상만 점유할 수 있다. 실제로 사용 중인 포트에 `-p 호스트포트:컨테이너포트`를 또 지정해서 매핑이 성립하지 않았다.
+- **확인**: `docker ps`의 PORTS 열과 `ss -ltn`(Windows는 `netstat -ano | findstr :<포트>`)으로 해당 포트를 누가 점유 중인지 확인했다.
+- **해결**: 사용 중이 아닌 호스트 포트로 매핑을 수정(예: `-p 8100:80`)해 다시 실행했고 연결이 정상임을 확인했다. 점유한 쪽이 불필요한 컨테이너면 `docker rm -f`로 제거하고 같은 포트를 다시 써도 된다.
+
+재현 로그 (당시 로그를 보관하지 않아 같은 증상을 다시 만들어 기록. `practice/port-conflict-demo.sh`로 재현 가능. 8099를 먼저 점유한 컨테이너 `use-a`가 실제 사용 중인 localhost 포트 역할):
+
+```bash
+# 이미 8099를 쓰는 컨테이너가 있는 상태에서 같은 호스트 포트로 매핑 시도
+$ docker run -d -p 8099:80 --name use-a my-web:1.0
+$ docker run -d -p 8099:80 --name use-b my-web:1.0
+docker: Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint use-b (...): Bind for 0.0.0.0:8099 failed: port is already allocated
+$ docker ps -a --format 'table {{.Names}}	{{.Status}}	{{.Ports}}'
+NAMES     STATUS                   PORTS
+use-b     Created
+use-a     Up Less than a second    0.0.0.0:8099->80/tcp, [::]:8099->80/tcp
+$ ss -ltn | grep 8099
+LISTEN 0      4096                *:8099            *:*
+
+# 수정: 사용 중이 아닌 호스트 포트(8100)로 매핑
+$ docker rm -f use-a use-b
+$ docker run -d -p 8100:80 --name use-c my-web:1.0
+$ curl -sS http://localhost:8100
+<h1>Hello from my custom image</h1>
+```
+
+재현 화면 (`practice/port-conflict-demo.sh` 실행 결과: 사용 중인 8099 매핑 실패 → 8100으로 수정):
+
+![port-mapping-fail](./assets/port-mapping-fail.png)
+
+- 실패한 컨테이너(`use-b`)는 `Created` 상태로 남고 PORTS가 비어 있으므로, 오류 메시지와 `docker ps -a`를 함께 봐야 한다. 점유는 `docker ps`뿐 아니라 컨테이너가 아닌 OS 프로세스일 수도 있어 `ss`/`netstat`로도 확인한다.
+
+### 참고: 컨테이너 포트를 잘못 지정한 경우 (별개의 매핑 오류)
+
+호스트 포트가 비어 있어도 컨테이너 쪽 포트가 앱이 listen하는 포트와 다르면 연결이 끊긴다 (nginx는 80 사용).
+
+```bash
+$ docker run -d -p 8099:5000 --name map-bad my-web:1.0     # 컨테이너 포트 오지정
+$ curl -sS http://localhost:8099
+curl: (56) Recv failure: Connection reset by peer
+$ docker rm -f map-bad
+$ docker run -d -p 8099:80 --name map-ok my-web:1.0        # 수정
+$ curl -sS http://localhost:8099
+<h1>Hello from my custom image</h1>
+```
+
+### 참고: 포트 점유 진단 순서
+
+1. `docker ps`로 컨테이너 매핑 확인
+2. `ss -ltn | grep <포트>`(또는 `lsof -i :<포트>`, Windows는 `netstat -ano | findstr :<포트>`)로 OS 프로세스 확인
+3. 점유 컨테이너는 `docker rm -f`, 다른 프로세스는 종료하거나 다른 호스트 포트를 사용한다. 종료할 수 없는 프로세스가 잡고 있거나 접속이 막히면 다른 호스트 포트로 재할당하고, Windows 방화벽의 해당 포트 허용 여부를 확인한다.
+
+---
+
+## 13) 보너스 과제 (선택)
+
+- [x] Docker Compose 기초 (`docker-compose.yml` 단일 서비스)
+- [x] Docker Compose 멀티 컨테이너 (웹 서버 + 보조 서비스 2개 이상, 네트워크 통신 확인)
+- [x] Compose 운영 명령어 (`up` / `down` / `ps` / `logs`)
+- [x] 환경 변수 활용 (포트/모드 변경)
+- [x] GitHub SSH 키 설정 및 동작 확인 (11)의 `ssh -T` 결과 참고)
+
+파일 위치: `practice/compose/basic/docker-compose.yml`, `practice/compose/multi/docker-compose.yml` (빌드 대상은 8)의 `practice/webapp`)
+
+### 13-1. Compose 기초 + 운영 명령어
+
+```yaml
+# practice/compose/basic/docker-compose.yml
+services:
+  web:
+    build: ../../webapp
+    ports:
+      - "8080:80"
+```
+
+```bash
+$ docker compose up -d --build
+ Container basic-web-1 Started
+
+$ docker compose ps
+NAME          IMAGE       COMMAND                  SERVICE   CREATED         STATUS         PORTS
+basic-web-1   basic-web   "/docker-entrypoint.…"   web       3 seconds ago   Up 2 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ curl http://localhost:8080
+<h1>Hello from my custom image</h1>
+
+$ docker compose logs --tail 3
+web-1  | 2026/11/10 01:49:53 [notice] 1#1: start worker process 53
+web-1  | 172.18.0.1 - - [10/Nov/2026:01:49:56 +0000] "GET / HTTP/1.1" 200 36 "-" "curl/8.5.0" "-"
+
+$ docker compose down
+ Container basic-web-1 Removed
+ Network basic_default Removed
+```
+
+### 13-2. 멀티 컨테이너 + 네트워크 통신 (web + redis + cache)
+
+```yaml
+# practice/compose/multi/docker-compose.yml
+services:
+  web:
+    build: ../../webapp
+    environment:
+      - APP_PORT=${APP_PORT:-8080}
+      - APP_MODE=${APP_MODE:-dev}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - redis
+      - cache
+  redis:
+    image: redis:alpine
+  cache:
+    image: memcached:alpine
+```
+
+```bash
+$ docker compose up -d --build
+$ docker compose ps
+NAME            IMAGE              COMMAND                  SERVICE   STATUS         PORTS
+multi-cache-1   memcached:alpine   "docker-entrypoint.s…"   cache     Up 3 seconds   11211/tcp
+multi-redis-1   redis:alpine       "docker-entrypoint.s…"   redis     Up 3 seconds   6379/tcp
+multi-web-1     multi-web          "/docker-entrypoint.…"   web       Up 3 seconds   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
+
+$ docker compose exec web ping -c 2 redis
+PING redis (172.18.0.3): 56 data bytes
+64 bytes from 172.18.0.3: seq=0 ttl=64 time=0.068 ms
+64 bytes from 172.18.0.3: seq=1 ttl=64 time=0.074 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+
+$ docker compose exec web ping -c 2 cache
+PING cache (172.18.0.2): 56 data bytes
+64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.067 ms
+64 bytes from 172.18.0.2: seq=1 ttl=64 time=0.073 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+```
+
+- 같은 Compose 네트워크 안에서는 **서비스 이름이 호스트 이름**으로 동작해서 `redis`, `cache`로 바로 통신된다.
+- `depends_on`은 시작 순서만 보장하며, 서비스가 "준비 완료"인지까지 기다리지는 않는다.
+
+### 13-3. 환경 변수 활용 (포트/모드 변경)
+
+```bash
+$ docker compose down
+$ APP_PORT=8090 APP_MODE=prod docker compose up -d
+$ docker compose ps web
+NAME          IMAGE       COMMAND                  SERVICE   STATUS         PORTS
+multi-web-1   multi-web   "/docker-entrypoint.…"   web       Up 3 seconds   0.0.0.0:8090->80/tcp, [::]:8090->80/tcp
+
+$ curl http://localhost:8090
+<h1>Hello from my custom image</h1>
+
+$ docker compose exec web printenv APP_PORT APP_MODE
+8090
+prod
+
+$ docker compose down
+```
+
+- `${APP_PORT:-8080}`은 변수가 없으면 기본값 8080을 쓰는 문법이다. 같은 파일로 포트와 모드를 바꿔 실행할 수 있다.
+- **실제로 바뀌는 것은 호스트 매핑 포트뿐**이다. nginx는 `APP_PORT`, `APP_MODE`를 사용하지 않으므로 컨테이너 내부 포트는 80으로 고정이고, 환경 변수는 "설정을 외부에서 주입할 수 있음"을 `printenv`로 확인하는 용도다.
+
+---
+
+## ⚠️ 보안 및 개인정보 보호
+
+- 본 문서와 로그/스크린샷에는 토큰, 비밀번호, 개인키, 인증 코드 등이 포함되어 있지 않음을 확인했습니다.
+- 민감정보가 노출된 경우 즉시 히스토리/문서에서 제거하고 재발급 절차를 수행했습니다. (해당 시)
+
+### 보안 점검 로그
+
+```bash
+$ git log --oneline
+976cf36 docs: 미션 폴더명을 mission_01로 통일하고 최상단 README 작성
+1594aa5 docs: mission01 평가 보완 사항 반영 (curl -i, 권한/네트워크/볼륨 설명 등)
+6b6f8ad chore: mission01 중복 스크린샷 원본 파일 제거
+...
+
+$ grep -rniE "password|token|secret" . --include="*.md"
+./CONCEPTS.md:167:- 점검: `git log --oneline`, `grep -ri "password\|token\|secret" . --include="*.md"`
+./README.md:...:$ grep -rniE "password|token|secret" . --include="*.md"
+# 점검 명령을 설명하는 문장만 일치 (실제 비밀값 없음)
+
+$ grep -rnE "BEGIN [A-Z ]*PRIVATE KEY|AAAAC3NzaC1|ghp_|github_pat_" . --exclude-dir=.git
+./README.md:...:$ grep -rnE "BEGIN [A-Z ]*PRIVATE KEY|AAAAC3NzaC1|ghp_|github_pat_" . --exclude-dir=.git
+# 이 문서에 적힌 점검 명령 자체만 일치 (개인키·공개키·토큰 패턴 없음)
+```
+
+- 폴더 이름을 `mission01`에서 `mission_01`로 바꾸기 전에 만든 커밋 메시지에는 `mission01`이 그대로 남아 있다(기록이므로 수정하지 않음).
+- GitHub 저장소 이름의 `pre-dgree`는 만들 때의 표기를 그대로 사용한 것이다.
+
+- SSH 키는 저장소에 올리지 않았고, 개인키는 로컬 `~/.ssh`에만 존재 (GitHub에는 공개키만 등록)
+- 스크린샷에는 GitHub 사용자 이름만 표시되고 토큰/인증 코드는 없음을 눈으로 확인
+- Git 이메일은 README에 `<이메일>`로 마스킹함

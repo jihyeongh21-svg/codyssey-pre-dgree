@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# 개인 참고용 문서 (저장소에 올리지 않음)
+EVALUATION.md
